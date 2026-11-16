@@ -128,3 +128,33 @@
     @apply font-sans;
     }
 }
+
+/*
+ * GameNight brand colours (from the Figma homepage).
+ * Additive only: the ShadCN theme tokens above are unchanged.
+ * Usage: bg-brand, text-brand-highlight, bg-cta, bg-surface-warm, ...
+ */
+@theme inline {
+    --color-brand: var(--brand);
+    --color-brand-strong: var(--brand-strong);
+    --color-brand-gradient-end: var(--brand-gradient-end);
+    --color-brand-foreground: var(--brand-foreground);
+    --color-brand-soft: var(--brand-soft);
+    --color-brand-highlight: var(--brand-highlight);
+    --color-cta: var(--cta);
+    --color-cta-foreground: var(--cta-foreground);
+    --color-surface-warm: var(--surface-warm);
+}
+
+:root {
+    --brand: #0f7a55;
+    --brand-strong: #0d6b4a;
+    --brand-gradient-end: #11865f;
+    --brand-foreground: #ffffff;
+    --brand-soft: #e3f3ec;
+    --brand-highlight: #7ee2bf;
+    /* Slightly deeper than the mockup pink so white text meets WCAG AA (4.5:1). */
+    --cta: #d33a62;
+    --cta-foreground: #ffffff;
+    --surface-warm: #f8f5f0;
+}

@@ -1,19 +1,27 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router";
+import { BrowserRouter, Routes, Route } from "react-router";
+import AppLayout from "./components/layout/AppLayout";
+import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import ComingSoon from "./pages/ComingSoon";
+import { ROUTES } from "./lib/routes";
 
 function App() {
   return (
     <BrowserRouter>
-      <nav>
-        <Link to="/">Login</Link>
-        {" | "}
-        <Link to="/dashboard">Dashboard</Link>
-      </nav>
-
       <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route element={<AppLayout />}>
+          <Route path={ROUTES.home} element={<Home />} />
+          <Route path={ROUTES.login} element={<Login />} />
+          <Route path={ROUTES.dashboard} element={<Dashboard />} />
+
+          {/* PLACEHOLDER routes: linked from the navbar/homepage, pages not built yet. */}
+          <Route path={ROUTES.findGame} element={<ComingSoon title="Find a Game" />} />
+          <Route path={ROUTES.browse} element={<ComingSoon title="Browse Games" />} />
+          <Route path={ROUTES.collection} element={<ComingSoon title="My Collection" />} />
+          <Route path={ROUTES.messages} element={<ComingSoon title="Messages" />} />
+          <Route path={ROUTES.createGameNight} element={<ComingSoon title="Create Game Night" />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
