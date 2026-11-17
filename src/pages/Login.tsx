@@ -1,5 +1,5 @@
 import { useState, type SubmitEvent } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,6 +13,24 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { signIn } = useAuth();
+  const location = useLocation();
+
+  const requestedPage = (location.state as {
+    from?: unknown;
+    } | null)?.from;
+
+  const destination =
+    typeof requestedPage === "string" &&
+    requestedPage.startsWith("/") &&
+    !requestedPage.startsWith("//") &&
+    !requestedPage.includes("\\") &&
+    ![ROUTES.login, ROUTES.register].includes(
+      requestedPage.split(/[?#]/)[0] as
+        typeof ROUTES.login | typeof ROUTES.register
+    )
+      ? requestedPage
+      : ROUTES.home;
+
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
   event.preventDefault();
@@ -30,7 +48,7 @@ function Login() {
     const response = await loginUser({ email, password });
 
     signIn(response);
-    navigate(ROUTES.dashboard, { replace: true });
+    navigate(destination, { replace: true });
 
     
   } catch (err: unknown) {

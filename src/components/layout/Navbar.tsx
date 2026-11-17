@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router";
+import { Link, NavLink, useNavigate, useLocation } from "react-router";
 import { Dices, Menu, Plus, X } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -32,6 +32,7 @@ function Navbar() {
   const closeMenu = () => setMenuOpen(false);
   const { session, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   function handleLogout() {
     signOut();
@@ -107,6 +108,12 @@ function Navbar() {
         ) : (
           <Link
             to={ROUTES.login}
+            state={{
+              from:
+              location.pathname +
+              location.search +
+              location.hash,
+          }}
             onClick={closeMenu}
             className={cn(
               buttonVariants({ variant: "outline" }),
