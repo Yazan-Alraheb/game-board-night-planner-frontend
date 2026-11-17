@@ -5,6 +5,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import ComingSoon from "./pages/ComingSoon";
 import { ROUTES } from "./lib/routes";
+import Register from "./pages/Register";
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Route element={<AppLayout />}>
           <Route path={ROUTES.home} element={<Home />} />
           <Route path={ROUTES.login} element={<Login />} />
+          <Route path={ROUTES.register} element={<Register />} />
           <Route path={ROUTES.dashboard} element={<Dashboard />} />
 
           {/* PLACEHOLDER routes: linked from the navbar/homepage, pages not built yet. */}

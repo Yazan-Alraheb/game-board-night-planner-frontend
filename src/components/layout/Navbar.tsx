@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router";
 import { Dices, Menu, Plus, X } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { getInitials } from "@/lib/format";
 import { ROUTES } from "@/lib/routes";
-import type { UserSummary } from "@/types/game";
+
 
 const NAV_ITEMS = [
   { label: "Home", to: ROUTES.home },
@@ -18,9 +16,7 @@ const NAV_ITEMS = [
 
 const MOBILE_MENU_ID = "mobile-navigation";
 
-interface NavbarProps {
-  currentUser: UserSummary;
-}
+
 
 function navLinkClass({ isActive }: { isActive: boolean }) {
   return cn(
@@ -31,7 +27,7 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
   );
 }
 
-function Navbar({ currentUser }: NavbarProps) {
+function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
 
@@ -83,19 +79,14 @@ function Navbar({ currentUser }: NavbarProps) {
 
           {/* No auth yet: the avatar shows the mock user and links to the existing Dashboard. */}
           <Link
-            to={ROUTES.dashboard}
+            to={ROUTES.login}
             onClick={closeMenu}
-            aria-label={`${currentUser.display_name}: open your dashboard`}
-            className="rounded-full focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            className={cn(
+            buttonVariants({ variant: "outline" }),
+            "h-10 rounded-xl border-brand-strong px-5 font-semibold text-brand-strong hover:bg-brand-soft"
+          )}
           >
-            <Avatar size="lg">
-              {currentUser.avatar_url && (
-                <AvatarImage src={currentUser.avatar_url} alt="" />
-              )}
-              <AvatarFallback className="bg-brand-soft font-semibold text-brand-strong">
-                {getInitials(currentUser.display_name)}
-              </AvatarFallback>
-            </Avatar>
+            Log In
           </Link>
 
           <button
