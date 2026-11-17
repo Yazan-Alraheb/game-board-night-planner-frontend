@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link, NavLink } from "react-router";
+import { Link, NavLink, useNavigate } from "react-router";
 import { Dices, Menu, Plus, X } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/routes";
-
+import { useAuth } from "@/auth/useAuth";
 
 const NAV_ITEMS = [
   { label: "Home", to: ROUTES.home },
@@ -30,7 +30,14 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
 function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
+  const { session, signOut } = useAuth();
+  const navigate = useNavigate();
 
+  function handleLogout() {
+    signOut();
+    closeMenu();
+    navigate(ROUTES.login, { replace: true });
+  }
   useEffect(() => {
     if (!menuOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -76,18 +83,40 @@ function Navbar() {
           >
             Create Game Night
           </Link>
+          
+        {session ? (
+          <div className="hidden items-center gap-3 lg:flex">
+            <Link
+              to={ROUTES.dashboard}
+              className="font-semibold text-brand-strong hover:underline"
+            >
+              {session.user.name}
+            </Link>
 
-          {/* No auth yet: the avatar shows the mock user and links to the existing Dashboard. */}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "h-10 rounded-xl px-4"
+              )}
+            >
+              Log Out
+            </button>
+          </div>
+        ) : (
           <Link
             to={ROUTES.login}
             onClick={closeMenu}
             className={cn(
-            buttonVariants({ variant: "outline" }),
-            "h-10 rounded-xl border-brand-strong px-5 font-semibold text-brand-strong hover:bg-brand-soft"
-          )}
+              buttonVariants({ variant: "outline" }),
+              "h-10 rounded-xl border-brand-strong px-5 font-semibold text-brand-strong hover:bg-brand-soft"
+            )}
           >
             Log In
           </Link>
+        )}
+
 
           <button
             type="button"
@@ -112,6 +141,31 @@ function Navbar() {
                 </NavLink>
               </li>
             ))}
+            {session && (
+            <>
+              <li>
+                <NavLink
+                  to={ROUTES.dashboard}
+                  onClick={closeMenu}
+                  className={(state) =>
+                    cn(navLinkClass(state), "block")
+                  }
+                >
+                  Dashboard ({session.user.name})
+                </NavLink>
+              </li>
+
+              <li>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full rounded-lg px-4 py-2 text-left font-medium text-brand-strong hover:bg-brand-soft"
+                >
+                  Log Out
+                </button>
+              </li>
+            </>
+          )}
             <li className="pt-2 sm:hidden">
               <Link
                 to={ROUTES.createGameNight}
