@@ -11,4 +11,5 @@ export const ROUTES = {
   collection: "/collection", // PLACEHOLDER
   messages: "/messages", // PLACEHOLDER
   createGameNight: "/game-nights/new", // PLACEHOLDER
+  register: "/register",
 } as const;

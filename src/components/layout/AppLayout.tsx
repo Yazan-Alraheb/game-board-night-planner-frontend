@@ -1,9 +1,7 @@
+
 import { Outlet } from "react-router";
 import Navbar from "@/components/layout/Navbar";
-// TODO(auth): replace the mock user with the logged-in user once authentication exists.
-import { mockCurrentUser } from "@/mocks/homepage";
 
-/** Shared shell for every page: skip link, navbar and the routed page content. */
 function AppLayout() {
   return (
     <>
@@ -13,7 +11,9 @@ function AppLayout() {
       >
         Skip to main content
       </a>
-      <Navbar currentUser={mockCurrentUser} />
+
+      <Navbar />
+
       <main id="main-content">
         <Outlet />
       </main>
