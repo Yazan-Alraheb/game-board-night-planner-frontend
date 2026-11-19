@@ -1,28 +1,23 @@
-import { Navigate, Outlet, useLocation } from "react-router";
+"use client";
+
+import { useEffect, type ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/auth/useAuth";
-import { getSession } from "@/auth/session";
 import { ROUTES } from "@/lib/routes";
 
-function ProtectedRoute() {
-  const { session } = useAuth();
-  const location = useLocation();
+export default function ProtectedRoute({ children }: { children: ReactNode }) {
+  const { session, ready } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
 
-  if (!session || !getSession()) {
-    return (
-      <Navigate
-        to={ROUTES.login}
-        replace
-        state={{
-          from:
-            location.pathname +
-            location.search +
-            location.hash,
-        }}
-      />
-    );
+  useEffect(() => {
+    if (ready && !session) {
+      router.replace(`${ROUTES.login}?next=${encodeURIComponent(pathname ?? ROUTES.home)}`);
+    }
+  }, [ready, session, pathname, router]);
+
+  if (!ready || !session) {
+    return <p role="status" className="p-8 text-muted-foreground">Checking login...</p>;
   }
-
-  return <Outlet />;
+  return <>{children}</>;
 }
-
-export default ProtectedRoute;

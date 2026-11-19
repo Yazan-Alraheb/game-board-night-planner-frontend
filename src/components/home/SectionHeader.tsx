@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Link } from "react-router";
+import Link from "next/link";
 
 interface SectionHeaderProps {
   id: string;
@@ -16,7 +16,7 @@ function SectionHeader({ id, title, action }: SectionHeaderProps) {
       </h2>
       {action && (
         <Link
-          to={action.to}
+          href={action.to}
           className="inline-flex shrink-0 items-center gap-1.5 rounded-md text-base font-medium text-brand hover:text-brand-strong hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none sm:text-lg"
         >
           {action.label}

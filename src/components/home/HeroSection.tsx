@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import Link from "next/link";
 import { ArrowRight, Dices, Puzzle, Trophy, Users } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -53,7 +53,7 @@ function HeroSection({ image }: HeroSectionProps) {
 
           <div className="mt-8 flex flex-col gap-4 sm:flex-row">
             <Link
-              to={ROUTES.findGame}
+              href={ROUTES.findGame}
               className={cn(
                 buttonVariants(),
                 "h-13 rounded-xl bg-cta px-8 text-lg font-bold text-cta-foreground hover:bg-cta/90",
@@ -63,7 +63,7 @@ function HeroSection({ image }: HeroSectionProps) {
               <ArrowRight aria-hidden="true" />
             </Link>
             <Link
-              to={ROUTES.createGameNight}
+              href={ROUTES.createGameNight}
               className={cn(
                 buttonVariants({ variant: "outline" }),
                 "h-13 rounded-xl border-white/30 bg-white/10 px-8 text-lg font-bold text-white hover:bg-white/20 hover:text-white",
