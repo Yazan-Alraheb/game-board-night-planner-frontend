@@ -1,5 +1,5 @@
 
-# Game Night Planner — Frontend
+# Game Night Planner - Frontend
 
 A web application for discovering board games, managing personal game collections, and organizing game nights.
 
@@ -59,11 +59,11 @@ To use a different backend address, update `FASTAPI_ORIGIN` in `.env.local` and 
 
 ## Available Commands
 
-- `bun run dev` — Start development server
-- `bun run build` — Create production build
-- `bun run start` — Start production server
-- `bun run lint` — Run Oxlint
-- `bun run typecheck` — Check TypeScript
+- `bun run dev` - Start development server
+- `bun run build` - Create production build
+- `bun run start` - Start production server
+- `bun run lint` - Run Oxlint
+- `bun run typecheck` - Check TypeScript
 
 ## Authentication
 
@@ -75,9 +75,9 @@ For production, HttpOnly cookie authentication with CSRF protection is recommend
 
 ## Project Structure
 
-- `src/app/` — Next.js pages and layouts
-- `src/views/` — Reusable page components
-- `src/components/` — Shared UI components
-- `src/auth/` — Authentication and session management
-- `src/api/` — FastAPI requests
-- `src/lib/` — Shared utilities
+- `src/app/` - Next.js pages and layouts
+- `src/views/` - Reusable page components
+- `src/components/` - Shared UI components
+- `src/auth/` - Authentication and session management
+- `src/api/` - FastAPI requests
+- `src/lib/` - Shared utilities
