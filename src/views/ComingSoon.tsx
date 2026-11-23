@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import Link from "next/link";
 import { Construction } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,7 +18,7 @@ function ComingSoon({ title }: ComingSoonProps) {
         This page is a placeholder and hasn&apos;t been built yet.
       </p>
       <Link
-        to={ROUTES.home}
+        href={ROUTES.home}
         className={cn(buttonVariants(), "mt-8 h-11 rounded-xl bg-brand-strong px-6 text-base hover:bg-brand")}
       >
         Back to home
