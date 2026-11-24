@@ -6,7 +6,8 @@ export const ROUTES = {
   home: "/",
   login: "/login",
   dashboard: "/dashboard",
-  findGame: "/find-a-game", // PLACEHOLDER
+  findGame: "/find-a-game",
+  recommendations: "/recommendations", // PLACEHOLDER
   browse: "/browse", // PLACEHOLDER
   collection: "/collection", // PLACEHOLDER
   messages: "/messages", // PLACEHOLDER

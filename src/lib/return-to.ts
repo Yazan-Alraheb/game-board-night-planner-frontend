@@ -4,6 +4,7 @@ const allowed = new Set<string>([
   ROUTES.home,
   ROUTES.dashboard,
   ROUTES.findGame,
+  ROUTES.recommendations,
   ROUTES.browse,
   ROUTES.collection,
   ROUTES.messages,
