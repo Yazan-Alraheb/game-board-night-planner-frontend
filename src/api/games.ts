@@ -1,5 +1,5 @@
 import api from "@/api/client";
-import type { GameListResponse } from "@/types/game";
+import type { Game, GameListResponse } from "@/types/game";
 
 export interface GetGamesParams {
   page?: number;
@@ -49,4 +49,20 @@ export async function getGameCategories(signal?: AbortSignal): Promise<string[]>
   }
 
   return [...categories.values()].sort((a, b) => a.localeCompare(b));
+}
+
+/** GET /api/games/{id} */
+export async function getGame(
+  id: number,
+  signal?: AbortSignal,
+): Promise<Game> {
+  const response = await api.get<{ game: Game }>(`/games/${id}`, {
+    signal,
+  });
+
+  if (!response.data || !response.data.game) {
+    throw new Error("Unexpected response format from GET /api/games/{id}");
+  }
+
+  return response.data.game;
 }
