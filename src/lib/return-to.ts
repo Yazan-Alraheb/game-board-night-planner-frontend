@@ -9,6 +9,7 @@ const allowed = new Set<string>([
   ROUTES.collection,
   ROUTES.messages,
   ROUTES.createGameNight,
+  ROUTES.friends,
 ]);
 
 export function safeReturnTo(value: unknown): string {
