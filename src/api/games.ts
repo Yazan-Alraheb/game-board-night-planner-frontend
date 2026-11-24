@@ -1,11 +1,30 @@
 import api from "@/api/client";
 import type { GameListResponse } from "@/types/game";
 
+
 export interface GetGamesParams {
+  // Searches the game name or description.
+  search?: string;
+
+  // Finds games that support this number of players.
+  players?: number;
+
+  // Filters by game category.
+  category?: string;
+
+  // Filters by Easy, Medium, or Hard.
+  difficulty?: "Easy" | "Medium" | "Hard";
+
+  // Finds games that take this many minutes or less.
+  playtime?: number;
+
+  // Selects which page to retrieve.
   page?: number;
-  /** Backend allows 1–100, default 20. */
+
+  // Controls how many games appear per page.
   limit?: number;
 }
+
 
 /** GET /api/games */
 export async function getGames(
