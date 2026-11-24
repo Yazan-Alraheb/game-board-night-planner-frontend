@@ -12,4 +12,5 @@ export const ROUTES = {
   messages: "/messages", // PLACEHOLDER
   createGameNight: "/game-nights/new", // PLACEHOLDER
   register: "/register",
+  friends: "/friends",
 } as const;
