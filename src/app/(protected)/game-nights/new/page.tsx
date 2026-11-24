@@ -1,5 +1,5 @@
-import ComingSoon from "@/views/ComingSoon";
+import CreateGameNight from "@/views/CreateGameNight";
 
 export default function Page() {
-  return <ComingSoon title="Create Game Night" />;
+  return <CreateGameNight />;
 }
