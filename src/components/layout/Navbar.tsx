@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { label: "Find a Game", to: ROUTES.findGame },
   { label: "Browse", to: ROUTES.browse },
   { label: "My Collection", to: ROUTES.collection },
+  { label: "Friends", to: ROUTES.friends },
   { label: "Messages", to: ROUTES.messages },
 ] as const;
 
