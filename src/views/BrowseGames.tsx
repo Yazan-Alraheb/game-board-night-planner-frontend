@@ -1,124 +1,142 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { getGames } from "@/api/games";
 import GameCard from "@/components/home/GameCard";
 import type { Game } from "@/types/game";
 
-// Allowed difficulty values from the backend.
 type Difficulty = "Easy" | "Medium" | "Hard";
 
-// Values controlled by the filter form.
 interface Filters {
   search: string;
   players: string;
+  category: string;
   difficulty: Difficulty | "";
+  playtime: string;
 }
 
+// Number of games requested for each page.
 const GAMES_PER_PAGE = 8;
 
 function BrowseGames() {
-  // Games returned from the backend.
+  // Games received from the backend.
   const [games, setGames] = useState<Game[]>([]);
 
-  // Total number of matching games in the database.
+  // Total matching games, used to calculate pagination.
   const [total, setTotal] = useState(0);
 
   // Current page number.
   const [page, setPage] = useState(1);
 
-  // Shows whether data is being loaded.
-  const [loading, setLoading] = useState(true);
-
-  // Shows whether the API request failed.
-  const [error, setError] = useState(false);
-
-  // Values currently typed into the form.
-  const [draftFilters, setDraftFilters] = useState<Filters>({
-    search: "",
-    players: "",
-    difficulty: "",
-  });
-
-  // Filters currently being used for the API request.
+  // Filter values controlled by the inputs.
   const [filters, setFilters] = useState<Filters>({
     search: "",
     players: "",
+    category: "",
     difficulty: "",
+    playtime: "",
   });
 
-  // Loads games whenever the page or filters change.
+  // Initial loading state.
+  const [loading, setLoading] = useState(true);
+
+  // API error state.
+  const [error, setError] = useState(false);
+
+  // Loads games when filters or page change.
   useEffect(() => {
     const controller = new AbortController();
 
-    // Requests games from FastAPI.
-    getGames(
-      {
-        page,
-        limit: GAMES_PER_PAGE,
-        search: filters.search || undefined,
-        players: filters.players
-          ? Number(filters.players)
-          : undefined,
-        difficulty: filters.difficulty || undefined,
-      },
-      controller.signal,
-    )
-      .then((data) => {
-        // Saves the returned games.
-        setGames(data.games);
+    // Wait briefly after typing before calling the API.
+    const timeoutId = window.setTimeout(() => {
+      getGames(
+        {
+          page,
+          limit: GAMES_PER_PAGE,
+          search: filters.search || undefined,
+          players: filters.players
+            ? Number(filters.players)
+            : undefined,
+          category: filters.category || undefined,
+          difficulty: filters.difficulty || undefined,
+          playtime: filters.playtime
+            ? Number(filters.playtime)
+            : undefined,
+        },
+        controller.signal,
+      )
+        .then((data) => {
+          // Calculate the last valid page.
+          const lastPage = Math.max(
+            1,
+            Math.ceil(data.total / GAMES_PER_PAGE),
+          );
 
-        // Saves the total for pagination.
-        setTotal(data.total);
+          // If the current page no longer exists, move to the last page.
+          if (page > lastPage) {
+            setTotal(data.total);
+            setPage(lastPage);
+            return;
+          }
 
-        // Stops the loading message.
-        setLoading(false);
-      })
-      .catch(() => {
-        // Ignore requests cancelled when leaving the page.
-        if (controller.signal.aborted) return;
+          // Save the new games and total count.
+          setGames(data.games);
+          setTotal(data.total);
+          setLoading(false);
+          setError(false);
+        })
+        .catch(() => {
+          // Ignore requests cancelled by a newer request.
+          if (controller.signal.aborted) return;
 
-        // Shows the error message.
-        setError(true);
-        setLoading(false);
-      });
+          setError(true);
+          setLoading(false);
+        });
+    }, 300);
 
-    // Cancels the request if the component is removed.
-    return () => controller.abort();
-  }, [page, filters]);
+    // Cancel the timer and old request when inputs change.
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [filters, page]);
 
-  // Applies the form filters.
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  // Updates one filter and immediately prepares the page for new results.
+  function updateFilter<K extends keyof Filters>(
+    key: K,
+    value: Filters[K],
+  ) {
+    setFilters((current) => ({
+      ...current,
+      [key]: value,
+    }));
 
-    setLoading(true);
-    setError(false);
-
-    // Return to page one when a new search is performed.
+    // New filters should always begin at page one.
     setPage(1);
 
-    // Use the form values for the next API request.
-    setFilters(draftFilters);
+    // Remove old results immediately instead of displaying stale games.
+    setGames([]);
+    setLoading(true);
+    setError(false);
   }
 
   // Clears all filters.
-  function handleReset() {
-
-    setLoading(true);
-    setError(false);
-
-    const emptyFilters: Filters = {
+  function resetFilters() {
+    setFilters({
       search: "",
       players: "",
+      category: "",
       difficulty: "",
-    };
+      playtime: "",
+    });
 
-    setDraftFilters(emptyFilters);
-    setFilters(emptyFilters);
     setPage(1);
+    setGames([]);
+    setLoading(true);
+    setError(false);
   }
 
-  // Calculates how many pages exist.
+  // Calculates the total number of pages.
   const totalPages = Math.max(
     1,
     Math.ceil(total / GAMES_PER_PAGE),
@@ -135,98 +153,151 @@ function BrowseGames() {
           Find a game for your next game night.
         </p>
 
-        {/* Search and filter form. */}
-        <form
-          onSubmit={handleSubmit}
-          className="mt-8 grid gap-4 rounded-2xl bg-white p-5 sm:grid-cols-3"
-        >
-          {/* Search field. */}
-          <input
-            type="search"
-            placeholder="Search games..."
-            value={draftFilters.search}
-            onChange={(event) =>
-              setDraftFilters({
-                ...draftFilters,
-                search: event.target.value,
-              })
-            }
-            className="h-11 rounded-lg border px-3"
-          />
-
-          {/* Player-count filter. */}
-          <input
-            type="number"
-            min="1"
-            placeholder="Number of players"
-            value={draftFilters.players}
-            onChange={(event) =>
-              setDraftFilters({
-                ...draftFilters,
-                players: event.target.value,
-              })
-            }
-            className="h-11 rounded-lg border px-3"
-          />
-
-          {/* Difficulty filter. */}
-          <select
-            value={draftFilters.difficulty}
-            onChange={(event) =>
-              setDraftFilters({
-                ...draftFilters,
-                difficulty: event.target.value as Difficulty | "",
-              })
-            }
-            className="h-11 rounded-lg border px-3"
-          >
-            <option value="">All difficulties</option>
-            <option value="Easy">Easy</option>
-            <option value="Medium">Medium</option>
-            <option value="Hard">Hard</option>
-          </select>
-
-          {/* Form buttons. */}
-          <div className="flex gap-3 sm:col-span-3">
-            <button
-              type="submit"
-              className="rounded-lg bg-brand-strong px-5 py-2 font-semibold text-white"
+        {/* Search and filter controls. */}
+        <div className="mt-8 rounded-2xl bg-white p-5">
+          {/* Search is separated and spans the full filter box. */}
+          <div>
+            <label
+              htmlFor="game-search"
+              className="mb-2 block font-semibold"
             >
-              Apply Filters
-            </button>
+              Search games
+            </label>
 
-            <button
-              type="button"
-              onClick={handleReset}
-              className="rounded-lg border px-5 py-2"
-            >
-              Reset
-            </button>
+            <input
+              id="game-search"
+              type="search"
+              value={filters.search}
+              onChange={(event) =>
+                updateFilter("search", event.target.value)
+              }
+              placeholder="Search by game name or description..."
+              className="h-12 w-full rounded-lg border px-3"
+            />
           </div>
-        </form>
 
-        {/* Loading state. */}
+          {/* Additional filters. */}
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <label
+                htmlFor="players"
+                className="mb-2 block font-semibold"
+              >
+                Players
+              </label>
+
+              <input
+                id="players"
+                type="number"
+                min="1"
+                value={filters.players}
+                onChange={(event) =>
+                  updateFilter("players", event.target.value)
+                }
+                placeholder="Example: 4"
+                className="h-11 w-full rounded-lg border px-3"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="category"
+                className="mb-2 block font-semibold"
+              >
+                Category
+              </label>
+
+              <input
+                id="category"
+                type="text"
+                value={filters.category}
+                onChange={(event) =>
+                  updateFilter("category", event.target.value)
+                }
+                placeholder="Example: Strategy"
+                className="h-11 w-full rounded-lg border px-3"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="difficulty"
+                className="mb-2 block font-semibold"
+              >
+                Difficulty
+              </label>
+
+              <select
+                id="difficulty"
+                value={filters.difficulty}
+                onChange={(event) =>
+                  updateFilter(
+                    "difficulty",
+                    event.target.value as Difficulty | "",
+                  )
+                }
+                className="h-11 w-full rounded-lg border px-3"
+              >
+                <option value="">All difficulties</option>
+                <option value="Easy">Easy</option>
+                <option value="Medium">Medium</option>
+                <option value="Hard">Hard</option>
+              </select>
+            </div>
+
+            <div>
+              <label
+                htmlFor="playtime"
+                className="mb-2 block font-semibold"
+              >
+                Maximum playtime
+              </label>
+
+              <input
+                id="playtime"
+                type="number"
+                min="1"
+                value={filters.playtime}
+                onChange={(event) =>
+                  updateFilter("playtime", event.target.value)
+                }
+                placeholder="Minutes"
+                className="h-11 w-full rounded-lg border px-3"
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="mt-5 rounded-lg border px-5 py-2"
+          >
+            Reset filters
+          </button>
+        </div>
+
+        {/* Loading message appears while new results are loading. */}
         {loading && (
-          <p className="mt-8">
+          <p className="mt-8" role="status">
             Loading games...
           </p>
         )}
 
-        {/* Error state. */}
+        {/* Error message appears if the API request fails. */}
         {error && (
-          <p className="mt-8 text-red-500">
+          <p className="mt-8 text-red-500" role="alert">
             Unable to load games.
           </p>
         )}
 
-        {/* Empty-results state. */}
+        {/* Message shown when no games match the filters. */}
         {!loading && !error && games.length === 0 && (
           <p className="mt-8">
             No games found.
           </p>
         )}
 
-        {/* Games grid. */}
+        {/* Game cards. */}
         {!loading && !error && games.length > 0 && (
           <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {games.map((game) => (
@@ -237,13 +308,17 @@ function BrowseGames() {
           </ul>
         )}
 
-        {/* Pagination controls. */}
+        {/* Pagination. */}
         {!loading && !error && totalPages > 1 && (
           <div className="mt-8 flex items-center justify-center gap-4">
             <button
               type="button"
               disabled={page === 1}
-              onClick={() => setPage((current) => current - 1)}
+              onClick={() => {
+                setGames([]);
+                setLoading(true);
+                setPage((current) => current - 1);
+              }}
               className="rounded-lg border px-4 py-2 disabled:opacity-40"
             >
               Previous
@@ -255,8 +330,12 @@ function BrowseGames() {
 
             <button
               type="button"
-              disabled={page === totalPages}
-              onClick={() => setPage((current) => current + 1)}
+              disabled={page >= totalPages}
+              onClick={() => {
+                setGames([]);
+                setLoading(true);
+                setPage((current) => current + 1);
+              }}
               className="rounded-lg border px-4 py-2 disabled:opacity-40"
             >
               Next
