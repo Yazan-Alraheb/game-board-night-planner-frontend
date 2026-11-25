@@ -4,19 +4,23 @@ import axios from "axios";
 import Link from "next/link";
 import { ArrowLeft, Clock, Star, Users } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { getGame } from "@/api/games";
+import {
+  addToCollection,
+  type CollectionStatus,
+} from "@/api/collection";
+import { useAuth } from "@/auth/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
 import {
   formatPlayerRange,
   formatPlaytime,
   getInitials,
   placeholderColor,
 } from "@/lib/format";
-import type { Game } from "@/types/game";
 import { cn } from "@/lib/utils";
-import { useParams } from "next/navigation";
+import type { Game } from "@/types/game";
 
 type PageState =
   | { status: "loading" }
@@ -25,11 +29,19 @@ type PageState =
 
 export default function GameDetailsPage() {
   const params = useParams<{ id: string }>();
-  const [state, setState] = useState<PageState>({ status: "loading" });
+  const { session } = useAuth();
+
+  const [state, setState] = useState<PageState>({
+    status: "loading",
+  });
+  const [savingStatus, setSavingStatus] =
+    useState<CollectionStatus | null>(null);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const controller = new AbortController();
+    // Read the game ID from the URL.
     const gameId = Number(params.id);
+    const controller = new AbortController();
 
     if (!Number.isInteger(gameId)) {
       setState({ status: "error" });
@@ -41,46 +53,53 @@ export default function GameDetailsPage() {
         setState({ status: "success", game });
       })
       .catch((error: unknown) => {
-        if (axios.isCancel(error)) return;
-
-        console.error("Failed to load game details", error);
-        setState({ status: "error" });
+        if (!axios.isCancel(error)) {
+          setState({ status: "error" });
+        }
       });
 
     return () => controller.abort();
   }, [params.id]);
 
+  async function saveGame(
+    status: CollectionStatus,
+    gameId: number,
+  ) {
+    if (!session) {
+      setMessage("Log in to save this game.");
+      return;
+    }
+
+    try {
+      setSavingStatus(status);
+      setMessage("");
+
+      await addToCollection(session.user.id, gameId, status);
+
+      setMessage(
+        status === "owned"
+          ? "Added to your collection."
+          : "Added to your wishlist.",
+      );
+    } catch {
+      setMessage("Could not save this game.");
+    } finally {
+      setSavingStatus(null);
+    }
+  }
+
   if (state.status === "loading") {
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="h-8 w-32 animate-pulse rounded bg-muted" />
-        <div className="mt-8 grid gap-8 lg:grid-cols-2">
-          <div className="aspect-4/3 animate-pulse rounded-2xl bg-muted" />
-          <div className="space-y-4">
-            <div className="h-10 w-2/3 animate-pulse rounded bg-muted" />
-            <div className="h-6 w-1/3 animate-pulse rounded bg-muted" />
-            <div className="h-32 animate-pulse rounded bg-muted" />
-          </div>
-        </div>
-      </div>
-    );
+    return <p className="p-12 text-center">Loading game...</p>;
   }
 
   if (state.status === "error") {
     return (
-      <div className="mx-auto max-w-xl px-4 py-24 text-center">
-        <h1 className="font-heading text-3xl font-bold">
-          Game not found
-        </h1>
-        <p className="mt-3 text-muted-foreground">
-          We could not load this game right now.
-        </p>
+      <div className="mx-auto max-w-xl p-12 text-center">
+        <h1 className="text-3xl font-bold">Game not found</h1>
+
         <Link
           href="/browse"
-          className={cn(
-            buttonVariants(),
-            "mt-8 rounded-xl bg-brand-strong px-6 text-brand-foreground hover:bg-brand",
-          )}
+          className="mt-6 inline-block rounded-lg bg-brand-strong px-5 py-3 text-white"
         >
           Back to games
         </Link>
@@ -95,15 +114,15 @@ export default function GameDetailsPage() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <Link
           href="/browse"
-          className="inline-flex items-center gap-2 text-sm font-medium text-brand-strong hover:underline"
+          className="inline-flex items-center gap-2 text-brand-strong"
         >
-          <ArrowLeft className="size-4" aria-hidden="true" />
+          <ArrowLeft className="size-4" />
           Back to games
         </Link>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-2">
           <Card className="overflow-hidden rounded-2xl p-0">
-            <div className="relative aspect-4/3 bg-white">
+            <div className="aspect-4/3 bg-white">
               {game.image_url ? (
                 <img
                   src={game.image_url}
@@ -113,7 +132,7 @@ export default function GameDetailsPage() {
               ) : (
                 <div
                   className={cn(
-                    "flex size-full items-center justify-center font-heading text-6xl font-bold",
+                    "flex size-full items-center justify-center text-6xl font-bold",
                     placeholderColor(game.id),
                   )}
                 >
@@ -132,68 +151,116 @@ export default function GameDetailsPage() {
               ))}
             </div>
 
-            <h1 className="mt-4 font-heading text-4xl font-bold tracking-tight">
+            <h1 className="mt-4 text-4xl font-bold">
               {game.name}
             </h1>
 
             {game.description && (
-              <p className="mt-5 text-lg leading-8 text-muted-foreground">
+              <p className="mt-5 text-lg text-muted-foreground">
                 {game.description}
               </p>
             )}
 
-            <dl className="mt-8 grid gap-4 sm:grid-cols-3">
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
               <div className="rounded-xl bg-white p-4">
-                <dt className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Users className="size-4 text-brand" aria-hidden="true" />
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Users className="size-4 text-brand" />
                   Players
-                </dt>
-                <dd className="mt-2 font-semibold">
+                </p>
+                <p className="mt-2 font-semibold">
                   {formatPlayerRange(
                     game.minimum_players,
                     game.maximum_players,
                   )}
-                </dd>
+                </p>
               </div>
 
               <div className="rounded-xl bg-white p-4">
-                <dt className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="size-4 text-brand" aria-hidden="true" />
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="size-4 text-brand" />
                   Play time
-                </dt>
-                <dd className="mt-2 font-semibold">
+                </p>
+                <p className="mt-2 font-semibold">
                   {formatPlaytime(game.playtime)}
-                </dd>
+                </p>
               </div>
 
               <div className="rounded-xl bg-white p-4">
-                <dt className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Star className="size-4 text-brand" aria-hidden="true" />
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Star className="size-4 text-brand" />
                   Rating
-                </dt>
-                <dd className="mt-2 font-semibold">
-                  {game.rating === null ? "No rating" : game.rating.toFixed(1)}
-                </dd>
+                </p>
+                <p className="mt-2 font-semibold">
+                  {game.rating === null
+                    ? "No rating"
+                    : game.rating.toFixed(1)}
+                </p>
               </div>
-            </dl>
+            </div>
 
-            <div className="mt-8">
-              <h2 className="font-heading text-2xl font-bold">
+            <div className="mt-8 rounded-2xl bg-white p-6">
+              <h2 className="text-2xl font-bold">
+                Save this game
+              </h2>
+
+              {session ? (
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    disabled={savingStatus !== null}
+                    onClick={() =>
+                      saveGame("owned", game.id)
+                    }
+                    className="rounded-xl bg-brand-strong px-5 py-3 font-semibold text-white disabled:opacity-50"
+                  >
+                    {savingStatus === "owned"
+                      ? "Saving..."
+                      : "Add to Collection"}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={savingStatus !== null}
+                    onClick={() =>
+                      saveGame("wishlist", game.id)
+                    }
+                    className="rounded-xl border border-brand-strong px-5 py-3 font-semibold text-brand-strong disabled:opacity-50"
+                  >
+                    {savingStatus === "wishlist"
+                      ? "Saving..."
+                      : "Add to Wishlist"}
+                  </button>
+                </div>
+              ) : (
+                <p className="mt-3 text-muted-foreground">
+                  Log in to save this game.
+                </p>
+              )}
+
+              {message && (
+                <p
+                  role="status"
+                  className="mt-3 text-sm text-muted-foreground"
+                >
+                  {message}
+                </p>
+              )}
+            </div>
+
+            <div className="mt-8 rounded-2xl bg-white p-6">
+              <h2 className="text-2xl font-bold">
                 More information
               </h2>
 
-              <div className="mt-4 space-y-4 rounded-2xl bg-white p-6">
-                <p>
-                  <span className="font-semibold">Difficulty:</span>{" "}
-                  {game.difficulty}
-                </p>
+              <p className="mt-4">
+                <strong>Difficulty:</strong> {game.difficulty}
+              </p>
 
-                {game.instructions && (
-                  <p className="whitespace-pre-line text-muted-foreground">
-                    {game.instructions}
-                  </p>
-                )}
-              </div>
+              {game.instructions && (
+                <p className="mt-4 whitespace-pre-line text-muted-foreground">
+                  {game.instructions}
+                </p>
+              )}
             </div>
           </div>
         </div>
