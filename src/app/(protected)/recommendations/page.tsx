@@ -1,6 +1,5 @@
-import ComingSoon from "@/views/ComingSoon";
+import Recommendations from "@/views/Recommendations";
 
-// PLACEHOLDER: the results page is built in the separate "Recommendations Page" issue/branch.
 export default function Page() {
-  return <ComingSoon title="Recommendations" />;
+  return <Recommendations />;
 }
