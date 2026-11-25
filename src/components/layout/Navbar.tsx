@@ -9,33 +9,38 @@ import { ROUTES } from "@/lib/routes";
 import { useAuth } from "@/auth/useAuth";
 
 
-const NAV_ITEMS = [
+interface NavItem {
+  label: string;
+  to: string;
+  /** Other routes that belong to this item, e.g. the quiz results page. */
+  related?: readonly string[];
+}
+
+const NAV_ITEMS: readonly NavItem[] = [
   { label: "Home", to: ROUTES.home },
-  { label: "Find a Game", to: ROUTES.findGame },
+  { label: "Find a Game", to: ROUTES.findGame, related: [ROUTES.recommendations] },
   { label: "Browse", to: ROUTES.browse },
   { label: "My Collection", to: ROUTES.collection },
   { label: "Friends", to: ROUTES.friends },
   { label: "Messages", to: ROUTES.messages },
-] as const;
-
-/** Pages that belong to a nav item, so the item stays highlighted there too. */
-const RELATED_PATHS: Partial<Record<string, readonly string[]>> = {
-  // The recommendations page is the last step of Find a Game.
-  [ROUTES.findGame]: [ROUTES.recommendations],
-};
-
-function isNavItemActive(pathname: string | null, to: string): boolean {
-  if (pathname === null) return false;
-  return pathname === to || (RELATED_PATHS[to]?.includes(pathname) ?? false);
-}
+];
 
 const MOBILE_MENU_ID = "mobile-navigation";
 
+/** Exact match or a nested route ("/friends/42" belongs to "/friends"). Home only matches "/". */
+function matchesRoute(pathname: string, route: string): boolean {
+  if (route === ROUTES.home) return pathname === ROUTES.home;
+  return pathname === route || pathname.startsWith(`${route}/`);
+}
 
+function isNavItemActive(item: NavItem, pathname: string | null): boolean {
+  if (!pathname) return false;
+  return [item.to, ...(item.related ?? [])].some((route) => matchesRoute(pathname, route));
+}
 
 function navLinkClass(isActive: boolean) {
   return cn(
-    "rounded-lg px-4 py-2 text-base font-medium transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+    "rounded-lg px-4 py-2 text-base font-medium whitespace-nowrap transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
     isActive
       ? "bg-brand-soft text-brand-strong"
       : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -95,40 +100,43 @@ function Navbar() {
           </span>
         </Link>
 
-        <nav aria-label="Main" className="mx-auto hidden lg:block">
+        <nav aria-label="Main" className="mx-auto hidden xl:block">
           <ul className="flex items-center gap-1">
-            {NAV_ITEMS.map((item) => (
-              <li key={item.to}>
-                <Link
-                  href={item.to}
-                  aria-current={
-                    isNavItemActive(pathname, item.to) ? "page" : undefined
-                  }
-                  className={navLinkClass(isNavItemActive(pathname, item.to))}
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
+            {NAV_ITEMS.map((item) => {
+              const active = isNavItemActive(item, pathname);
+              return (
+                <li key={item.to}>
+                  <Link
+                    href={item.to}
+                    aria-current={active ? "page" : undefined}
+                    // Slightly tighter than the mobile menu so all items fit beside the actions.
+                    className={cn(navLinkClass(active), "px-3")}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
-        <div className="ml-auto flex items-center gap-3 lg:ml-0">
+        <div className="ml-auto flex min-w-0 items-center gap-3 xl:ml-0">
           <Link
             href={ROUTES.createGameNight}
             className={cn(
               buttonVariants(),
-              "hidden h-11 rounded-xl bg-brand-strong px-5 text-base font-semibold text-brand-foreground hover:bg-brand sm:inline-flex"
+              "hidden h-11 shrink-0 rounded-xl bg-brand-strong px-5 text-base font-semibold whitespace-nowrap text-brand-foreground hover:bg-brand sm:inline-flex"
             )}
           >
             Create Game Night
           </Link>
 
           {session ? (
-            <div className="hidden items-center gap-3 lg:flex">
+            <div className="hidden min-w-0 items-center gap-3 xl:flex">
               <Link
                 href={ROUTES.dashboard}
-                className="font-semibold text-brand-strong hover:underline"
+                title={session.user.name}
+                className="block max-w-32 truncate rounded-md font-semibold text-brand-strong hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
               >
                 {session.user.name}
               </Link>
@@ -138,7 +146,7 @@ function Navbar() {
                 onClick={handleLogout}
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "h-10 rounded-xl px-4"
+                  "h-10 shrink-0 rounded-xl px-4 whitespace-nowrap"
                 )}
               >
                 Log Out
@@ -150,7 +158,7 @@ function Navbar() {
               onClick={closeMenu}
               className={cn(
                 buttonVariants({ variant: "outline" }),
-                "h-10 rounded-xl border-brand-strong px-5 font-semibold text-brand-strong hover:bg-brand-soft"
+                "h-10 shrink-0 rounded-xl border-brand-strong px-5 font-semibold whitespace-nowrap text-brand-strong hover:bg-brand-soft"
               )}
             >
               Log In
@@ -161,7 +169,7 @@ function Navbar() {
             type="button"
             className={cn(
               buttonVariants({ variant: "ghost", size: "icon-lg" }),
-              "lg:hidden"
+              "shrink-0 xl:hidden"
             )}
             aria-expanded={menuOpen}
             aria-controls={MOBILE_MENU_ID}
@@ -181,26 +189,24 @@ function Navbar() {
         <nav
           id={MOBILE_MENU_ID}
           aria-label="Main"
-          className="border-t bg-white lg:hidden"
+          className="border-t bg-white xl:hidden"
         >
           <ul className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 sm:px-6">
-            {NAV_ITEMS.map((item) => (
-              <li key={item.to}>
-                <Link
-                  href={item.to}
-                  onClick={closeMenu}
-                  aria-current={
-                    isNavItemActive(pathname, item.to) ? "page" : undefined
-                  }
-                  className={cn(
-                    navLinkClass(isNavItemActive(pathname, item.to)),
-                    "block"
-                  )}
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
+            {NAV_ITEMS.map((item) => {
+              const active = isNavItemActive(item, pathname);
+              return (
+                <li key={item.to}>
+                  <Link
+                    href={item.to}
+                    onClick={closeMenu}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(navLinkClass(active), "block")}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
 
             {session && (
               <>
@@ -208,9 +214,10 @@ function Navbar() {
                   <Link
                     href={ROUTES.dashboard}
                     onClick={closeMenu}
+                    aria-current={pathname === ROUTES.dashboard ? "page" : undefined}
                     className={cn(
                       navLinkClass(pathname === ROUTES.dashboard),
-                      "block"
+                      "block truncate"
                     )}
                   >
                     Dashboard ({session.user.name})
@@ -221,7 +228,7 @@ function Navbar() {
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="w-full rounded-lg px-4 py-2 text-left font-medium text-brand-strong hover:bg-brand-soft"
+                    className="w-full rounded-lg px-4 py-2 text-left font-medium text-brand-strong hover:bg-brand-soft focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                   >
                     Log Out
                   </button>

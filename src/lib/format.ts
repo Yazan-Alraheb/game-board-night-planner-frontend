@@ -29,10 +29,22 @@ export function formatPlayerCount(count: number): string {
   return `${count} ${count === 1 ? "player" : "players"}`;
 }
 
-/** e.g. "Sat, Sep 26 · 7:00 PM" */
-export function formatEventDate(isoDate: string): string {
+const eventDateWithYearFormat = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+
+/**
+ * In the viewer's local time zone, e.g. "Sat, Sep 26 · 7:00 PM".
+ * The year is added when it isn't the current year: "Fri, Jan 8, 2027 · 7:00 PM".
+ */
+export function formatEventDate(isoDate: string, now: Date = new Date()): string {
   const date = new Date(isoDate);
-  return `${eventDateFormat.format(date)} · ${eventTimeFormat.format(date)}`;
+  const dateFormat =
+    date.getFullYear() === now.getFullYear() ? eventDateFormat : eventDateWithYearFormat;
+  return `${dateFormat.format(date)} · ${eventTimeFormat.format(date)}`;
 }
 
 /** e.g. "Maria Lopez" → "ML" */
