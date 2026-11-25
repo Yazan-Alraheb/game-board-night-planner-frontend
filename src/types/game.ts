@@ -1,15 +1,9 @@
 /**
- * Data types for games and game nights.
+ * Data types for games.
  *
  * `Game` and `GameListResponse` match the backend's GameResponse and
  * GameListResponse schemas (checked against GET /api/games and /openapi.json).
  */
-
-export interface UserSummary {
-  id: number;
-  display_name: string;
-  avatar_url: string | null;
-}
 
 /** Backend schema: GameResponse */
 export interface Game {
@@ -36,20 +30,3 @@ export interface GameListResponse {
   page: number;
 }
 
-/** The current user's relationship to a game night. */
-export type GameNightRole = "host" | "invited";
-
-/**
- * PROVISIONAL: does not match the backend yet. The backend's GameNightResponse
- * uses `name` and `host_id`, and members come from GET /api/game-nights/{id}/members.
- * Align this when the homepage loads real game nights.
- */
-export interface GameNight {
-  id: number;
-  title: string;
-  /** ISO 8601 date-time string */
-  starts_at: string;
-  location: string;
-  my_role: GameNightRole;
-  attendees: UserSummary[];
-}
