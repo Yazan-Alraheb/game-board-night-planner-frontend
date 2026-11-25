@@ -10,7 +10,7 @@
  * and old results can never show up for changed answers.
  *
  * Holds only what the backend returned for this user: games, scores, reasons and
- * public owner fields (id, name, bio, avatar). No tokens.
+* public owner fields (id, name, username, bio, avatar). No tokens.
  */
 import { parseRecommendationList } from "@/lib/recommendations/parse";
 import {
@@ -21,7 +21,7 @@ import {
 import type { Recommendation } from "@/types/recommendation";
 
 const RESULTS_KEY = "gamenight_recommendation_results";
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 
 export function saveCachedResults(
   snapshot: SubmittedRequestSnapshot,

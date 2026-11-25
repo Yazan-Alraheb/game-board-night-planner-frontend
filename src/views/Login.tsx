@@ -52,10 +52,7 @@ export default function Login({ next }: { next?: string }) {
           <h1 className="font-heading text-3xl font-bold">Welcome Back</h1>
           <p className="mt-2 text-muted-foreground">Log in to your Game Night account</p>
         </div>
-        <form onSubmit={handleSubmit}
-        autoComplete="off" 
-        className="space-y-5"
-        >
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
             <label
               htmlFor="identifier"
@@ -69,7 +66,7 @@ export default function Login({ next }: { next?: string }) {
               name="identifier"
               type="text"
               placeholder="Enter your username or email"
-              autoComplete="off"
+              autoComplete="username"
               autoCapitalize="none"
               spellCheck={false}
               required
@@ -80,7 +77,7 @@ export default function Login({ next }: { next?: string }) {
           <div className="space-y-2">
             <label htmlFor="password" className="text-sm font-medium">Password</label>
             <input id="password" type="password" name="password" placeholder="Enter your password"
-              autoComplete="off" required
+              autoComplete="current-password" required
               className="h-11 w-full rounded-lg border border-input bg-background px-3 outline-none focus-visible:ring-2 focus-visible:ring-brand" />
           </div>
           <Button type="submit" disabled={loading}
