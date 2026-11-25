@@ -50,6 +50,7 @@ export function getSession(): AuthResponse | null {
 
     if (
       !session?.user ||
+      typeof session.user.username !== "string" ||
       !session.access_token ||
       expiresAt === null ||
       expiresAt <= Date.now()

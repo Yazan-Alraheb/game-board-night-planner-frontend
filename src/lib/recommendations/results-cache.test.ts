@@ -42,7 +42,15 @@ function recommendation(id: number, score: number): Recommendation {
     },
     score,
     reason: "Fits your group",
-    owners: [{ id: 1, name: "Alex", bio: null, avatar_url: null }],
+    owners: [
+      {
+        id: 1,
+        name: "Alex",
+        username: "alex123",
+        bio: null,
+        avatar_url: null,
+      },
+    ],
   };
 }
 
@@ -124,6 +132,32 @@ describe("results cache", () => {
     ]);
     expect(storage.store.get(RESULTS_KEY)).not.toMatch(/token|bearer|password|email/i);
   });
+
+  test("invalidates caches created before username support", () => {
+    const snapshot = submit();
+    saveCachedResults(snapshot, results);
+
+    const raw = JSON.parse(storage.store.get(RESULTS_KEY)!);
+
+    raw.version = 1;
+    delete raw.recommendations[0].owners[0].username;
+
+    storage.store.set(RESULTS_KEY, JSON.stringify(raw));
+
+    expect(loadCachedResults(snapshot)).toBeNull();
+    expect(storage.store.has(RESULTS_KEY)).toBe(false);
+  });
+
+
+    test("preserves owner usernames in cached results", () => {
+    const snapshot = submit();
+
+    saveCachedResults(snapshot, results);
+
+    expect(
+      loadCachedResults(snapshot)?.[0].owners[0].username
+    ).toBe("alex123");
+  });
 });
 
 describe("parseRecommendationList (API responses and cached data)", () => {
@@ -132,10 +166,28 @@ describe("parseRecommendationList (API responses and cached data)", () => {
   });
 
   test("drops unknown fields such as an owner email", () => {
-    const withEmail = { ...results[0], owners: [{ id: 1, name: "A", email: "a@example.com", bio: null, avatar_url: null }] };
-    expect(parseRecommendationList({ recommendations: [withEmail] })?.[0].owners[0]).toEqual({
+    const withEmail = {
+      ...results[0],
+      owners: [
+        {
+          id: 1,
+          name: "A",
+          username: "alex123",
+          email: "a@example.com",
+          bio: null,
+          avatar_url: null,
+        },
+      ],
+    };
+
+    expect(
+      parseRecommendationList({
+        recommendations: [withEmail],
+      })?.[0].owners[0]
+    ).toEqual({
       id: 1,
       name: "A",
+      username: "alex123",
       bio: null,
       avatar_url: null,
     });
@@ -149,6 +201,44 @@ describe("parseRecommendationList (API responses and cached data)", () => {
     ["an incomplete game", { recommendations: [{ ...results[0], game: { id: 1 } }] }],
   ])("rejects %s", (_name, body) => {
     expect(parseRecommendationList(body)).toBeNull();
+  });
+
+  test("rejects owners without usernames", () => {
+    const invalid = {
+      ...results[0],
+      owners: [
+        {
+          id: 1,
+          name: "Alex",
+          bio: null,
+          avatar_url: null,
+        },
+      ],
+    };
+
+    expect(
+      parseRecommendationList({
+        recommendations: [invalid],
+      })
+    ).toBeNull();
+  });
+
+  test("rejects owners with non-string usernames", () => {
+    const invalid = {
+      ...results[0],
+      owners: [
+        {
+          ...results[0].owners[0],
+          username: 123,
+        },
+      ],
+    };
+
+    expect(
+      parseRecommendationList({
+        recommendations: [invalid],
+      })
+    ).toBeNull();
   });
 });
 
