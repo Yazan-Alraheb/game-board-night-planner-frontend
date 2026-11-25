@@ -63,6 +63,7 @@ export default function CreateGameNight() {
   const [games, setGames] = useState<Game[]>([]);
   const [friends, setFriends] = useState<PublicUser[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [created, setCreated] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -86,7 +87,8 @@ export default function CreateGameNight() {
     setError("");
     try {
       await api.post("/game-nights", { name: form.name.trim(), starts_at: date.toISOString(), location: form.location.trim(), notes: form.notes.trim() || null, game_ids: gameIds, invitee_ids: inviteeIds });
-      router.push(ROUTES.dashboard);
+      setCreated(true);
+      setTimeout(() => router.push(ROUTES.home), 1500);
     } catch (err) {
       const detail = axios.isAxiosError(err) ? err.response?.data?.detail : null;
       setError(typeof detail === "string" ? detail : "Unable to create game night. Please try again.");
@@ -100,6 +102,12 @@ export default function CreateGameNight() {
 
   return (
     <div className="min-h-screen bg-surface-warm">
+      {created && (
+        <p role="status" className="fixed right-6 bottom-6 z-50 flex items-center gap-2 rounded-xl bg-brand-strong px-5 py-3 font-semibold text-white shadow-lg">
+          <Check className="size-5" aria-hidden="true" />
+          Game night created!
+        </p>
+      )}
       <section className="bg-brand px-4 py-12 text-brand-foreground">
         <div className="mx-auto max-w-7xl">
           <div className="flex items-center gap-3">
@@ -193,7 +201,7 @@ export default function CreateGameNight() {
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
             <Button type="submit" disabled={submitting} className="mt-auto h-13 rounded-xl bg-cta text-lg font-bold text-cta-foreground hover:bg-cta/90">
               <Sparkles className="size-5" />
-              {submitting ? "Creating..." : "Create Game Night"}
+              {created ? "Created!" : submitting ? "Creating..." : "Create Game Night"}
             </Button>
           </aside>
         </form>
