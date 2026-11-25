@@ -27,6 +27,20 @@ export interface GameNightListResponse {
   game_nights: GameNightResponse[];
 }
 
+/** Backend enum for a member's RSVP. The host is stored as an "accepted" member. */
+export type GameNightMemberStatus = "pending" | "accepted" | "declined";
+
+/** Backend schema: GameNightMemberEntry */
+export interface GameNightMember {
+  user: PublicUser;
+  status: GameNightMemberStatus;
+}
+
+/** Backend schema: GameNightMembersResponse (GET /api/game-nights/{id}/members) */
+export interface GameNightMembersResponse {
+  members: GameNightMember[];
+}
+
 /** Backend schema: GameNightDetailResponse (GET /api/game-nights/{id}) */
 export interface GameNightDetailResponse {
   game_night: GameNightResponse;
@@ -49,4 +63,15 @@ export interface GameNightAvailableGamesResponse {
 export interface GameNightGameResponse {
   game_id: number;
   game_night_id: number;
+}
+
+/** Backend schema: RSVPUpdate (PUT /api/game-nights/{id}/rsvp). Only the invitee's own answer. */
+export interface RsvpUpdate {
+  status: Exclude<GameNightMemberStatus, "pending">;
+}
+
+/** Backend schema: RSVPResponse */
+export interface RsvpResponse {
+  game_night_id: number;
+  status: GameNightMemberStatus;
 }

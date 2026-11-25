@@ -4,7 +4,11 @@ import type {
   GameNightDetailResponse,
   GameNightGameResponse,
   GameNightListResponse,
+  GameNightMember,
+  GameNightMembersResponse,
   GameNightResponse,
+  RsvpResponse,
+  RsvpUpdate,
 } from "@/types/game-night";
 
 /** GET /api/game-nights: game nights the current user hosts or is a member of. */
@@ -16,6 +20,25 @@ export async function getGameNights(signal?: AbortSignal): Promise<GameNightResp
   }
 
   return response.data.game_nights;
+}
+
+/**
+ * GET /api/game-nights/{id}/members: everyone on the night with their RSVP status.
+ * The host is included as an "accepted" member. 404 if the user can't see the night.
+ */
+export async function getGameNightMembers(
+  gameNightId: number,
+  signal?: AbortSignal,
+): Promise<GameNightMember[]> {
+  const response = await api.get<GameNightMembersResponse>(`/game-nights/${gameNightId}/members`, {
+    signal,
+  });
+
+  if (!response.data || !Array.isArray(response.data.members)) {
+    throw new Error("Unexpected response format from GET /api/game-nights/{id}/members");
+  }
+
+  return response.data.members;
 }
 
 /** GET /api/game-nights/{id}: one game night's details. */
@@ -57,5 +80,26 @@ export async function addGameToGameNight(
   const response = await api.post<GameNightGameResponse>(`/game-nights/${gameNightId}/games`, {
     game_id: gameId,
   });
+  return response.data;
+}
+
+const RSVP_STATUSES: readonly string[] = ["pending", "accepted", "declined"];
+
+/**
+ * PUT /api/game-nights/{id}/rsvp: the current user answers their own invitation.
+ * Returns the status the backend saved. Backend errors: 403 (not invited, or the host
+ * tried to decline), 404 (night deleted or no longer visible), 422 (invalid body).
+ */
+export async function updateRsvp(
+  gameNightId: number,
+  status: RsvpUpdate["status"],
+): Promise<RsvpResponse> {
+  const body: RsvpUpdate = { status };
+  const response = await api.put<RsvpResponse>(`/game-nights/${gameNightId}/rsvp`, body);
+
+  if (!response.data || !RSVP_STATUSES.includes(response.data.status)) {
+    throw new Error("Unexpected response format from PUT /api/game-nights/{id}/rsvp");
+  }
+
   return response.data;
 }
