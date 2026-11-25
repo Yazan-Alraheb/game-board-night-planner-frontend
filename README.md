@@ -116,6 +116,43 @@ Existing PostgreSQL databases must apply the username migration documented in th
 
 Existing accounts receive generated usernames and retain their original email and password.
 
+
+## Profile & Preferences
+
+Authenticated users can access their profile by clicking their name in the navigation bar or visiting `/profile`.
+
+### Profile Features
+
+- Edit display name and biography.
+- Update or remove the profile picture using an image URL.
+- View the account username and membership date.
+- Save profile changes to the backend.
+- Automatically synchronize updated profile information with the authentication session.
+- Sign out directly from the profile page.
+
+Usernames remain read-only.
+
+### Game Preferences
+
+Users can select multiple favorite game categories and a preferred playtime.
+
+Available playtime options:
+
+- Quick: Under 30 minutes (stored as 25 minutes).
+- Medium: 30–90 minutes (stored as 60 minutes).
+- Long: Over 90 minutes (stored as 120 minutes).
+
+Previously saved difficulty and disliked category preferences are preserved when updating the profile.
+
+### Backend Integration
+
+The profile page uses the following authenticated API endpoints:
+
+- GET /api/users/{id}
+- PUT /api/users/{id}
+- GET /api/users/{id}/preferences
+- PUT /api/users/{id}/preferences
+
 ## Project Structure
 
 - `src/app/` - Next.js pages and layouts

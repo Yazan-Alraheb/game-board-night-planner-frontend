@@ -134,8 +134,9 @@ function Navbar() {
           {session ? (
             <div className="hidden min-w-0 items-center gap-3 xl:flex">
               <Link
-                href={ROUTES.dashboard}
-                title={session.user.name}
+                href={ROUTES.profile}
+                title="View your profile"
+                aria-current={pathname === ROUTES.profile ? "page" : undefined}
                 className="block max-w-32 truncate rounded-md font-semibold text-brand-strong hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
               >
                 {session.user.name}
@@ -212,15 +213,15 @@ function Navbar() {
               <>
                 <li>
                   <Link
-                    href={ROUTES.dashboard}
+                    href={ROUTES.profile}
                     onClick={closeMenu}
-                    aria-current={pathname === ROUTES.dashboard ? "page" : undefined}
+                    aria-current={pathname === ROUTES.profile ? "page" : undefined}
                     className={cn(
-                      navLinkClass(pathname === ROUTES.dashboard),
+                      navLinkClass(pathname === ROUTES.profile),
                       "block truncate"
                     )}
                   >
-                    Dashboard ({session.user.name})
+                    Profile ({session.user.name})
                   </Link>
                 </li>
 
