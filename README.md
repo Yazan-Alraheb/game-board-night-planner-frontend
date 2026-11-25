@@ -64,6 +64,7 @@ To use a different backend address, update `FASTAPI_ORIGIN` in `.env.local` and 
 - `bun run start` - Start production server
 - `bun run lint` - Run Oxlint
 - `bun run typecheck` - Check TypeScript
+- `bun run test` - Run unit tests (Bun test runner, `*.test.ts` files in `src/`)
 
 ## Authentication
 

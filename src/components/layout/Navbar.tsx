@@ -18,6 +18,17 @@ const NAV_ITEMS = [
   { label: "Messages", to: ROUTES.messages },
 ] as const;
 
+/** Pages that belong to a nav item, so the item stays highlighted there too. */
+const RELATED_PATHS: Partial<Record<string, readonly string[]>> = {
+  // The recommendations page is the last step of Find a Game.
+  [ROUTES.findGame]: [ROUTES.recommendations],
+};
+
+function isNavItemActive(pathname: string | null, to: string): boolean {
+  if (pathname === null) return false;
+  return pathname === to || (RELATED_PATHS[to]?.includes(pathname) ?? false);
+}
+
 const MOBILE_MENU_ID = "mobile-navigation";
 
 
@@ -91,9 +102,9 @@ function Navbar() {
                 <Link
                   href={item.to}
                   aria-current={
-                    pathname === item.to ? "page" : undefined
+                    isNavItemActive(pathname, item.to) ? "page" : undefined
                   }
-                  className={navLinkClass(pathname === item.to)}
+                  className={navLinkClass(isNavItemActive(pathname, item.to))}
                 >
                   {item.label}
                 </Link>
@@ -179,10 +190,10 @@ function Navbar() {
                   href={item.to}
                   onClick={closeMenu}
                   aria-current={
-                    pathname === item.to ? "page" : undefined
+                    isNavItemActive(pathname, item.to) ? "page" : undefined
                   }
                   className={cn(
-                    navLinkClass(pathname === item.to),
+                    navLinkClass(isNavItemActive(pathname, item.to)),
                     "block"
                   )}
                 >
