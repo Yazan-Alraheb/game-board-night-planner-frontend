@@ -1,19 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getApiErrorInfo, type ApiErrorInfo } from "@/api/errors";
+import { getApiErrorInfo } from "@/api/errors";
 import { useAuth } from "@/auth/useAuth";
+import {
+  resolveUserResource,
+  userRequestKey,
+  type KeyedResult,
+  type UserResource,
+} from "@/lib/user-resource";
 
-export type UserResource<T> =
-  | { status: "signed-out" }
-  | { status: "loading" }
-  | { status: "success"; data: T }
-  | { status: "error"; error: ApiErrorInfo };
-
-interface KeyedResult<T> {
-  key: string;
-  value: UserResource<T>;
-}
+export type { UserResource };
 
 /**
  * Loads data for the signed-in user and reloads it when the user or session changes.
@@ -34,7 +31,7 @@ export function useUserResource<T>(
 
   const userId = session?.user.id ?? null;
   const token = session?.access_token ?? null;
-  const requestKey = userId !== null && token !== null ? `${userId}|${token}|${attempt}` : null;
+  const requestKey = userRequestKey(userId, token, attempt);
 
   useEffect(() => {
     if (requestKey === null || userId === null) return;
@@ -58,11 +55,5 @@ export function useUserResource<T>(
 
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
 
-  let resource: UserResource<T>;
-  if (!ready) resource = { status: "loading" };
-  else if (requestKey === null) resource = { status: "signed-out" };
-  else if (result?.key === requestKey) resource = result.value;
-  else resource = { status: "loading" };
-
-  return [resource, retry];
+  return [resolveUserResource(ready, requestKey, result), retry];
 }

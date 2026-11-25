@@ -2,11 +2,10 @@
 
 import { getCollection } from "@/api/collection";
 import { useUserResource } from "@/hooks/useUserResource";
+import { ownedGameIdsFrom } from "@/lib/home/owned-games";
 
 async function loadOwnedGameIds(userId: number, signal: AbortSignal): Promise<ReadonlySet<number>> {
-  const entries = await getCollection(userId, "owned", signal);
-  // The server already filters by status; check again so wishlist games are never shown as owned.
-  return new Set(entries.filter((entry) => entry.status === "owned").map((entry) => entry.game.id));
+  return ownedGameIdsFrom(await getCollection(userId, "owned", signal));
 }
 
 /**

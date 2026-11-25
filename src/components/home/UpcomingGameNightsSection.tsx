@@ -137,11 +137,8 @@ function UpcomingGameNightsSection() {
                 </li>
               ))}
             </ul>
-            {state.data.totalUpcoming > state.data.shown.length && (
-              <p className="mt-4 text-muted-foreground">
-                +{state.data.totalUpcoming - state.data.shown.length} more upcoming{" "}
-                {state.data.totalUpcoming - state.data.shown.length === 1 ? "game night" : "game nights"}
-              </p>
+            {state.data.hasMore && (
+              <p className="mt-4 text-muted-foreground">More upcoming game nights</p>
             )}
           </>
         ) : (

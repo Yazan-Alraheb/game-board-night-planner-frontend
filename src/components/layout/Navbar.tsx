@@ -102,7 +102,6 @@ function Navbar() {
 
         <nav aria-label="Main" className="mx-auto hidden xl:block">
           <ul className="flex items-center gap-1">
-
             {NAV_ITEMS.map((item) => {
               const active = isNavItemActive(item, pathname);
               return (
@@ -193,7 +192,6 @@ function Navbar() {
           className="border-t bg-white xl:hidden"
         >
           <ul className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 sm:px-6">
-
             {NAV_ITEMS.map((item) => {
               const active = isNavItemActive(item, pathname);
               return (

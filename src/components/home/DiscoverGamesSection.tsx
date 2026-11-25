@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, RotateCw } from "lucide-react";
 import { getApiErrorInfo } from "@/api/errors";
 import { useOwnedGameIds } from "@/hooks/useOwnedGameIds";
+import { isGameOwned } from "@/lib/home/owned-games";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import GameCard from "@/components/home/GameCard";
@@ -112,7 +113,7 @@ function DiscoverGamesSection() {
           <ul className={GRID_CLASSES}>
             {state.games.map((game) => (
               <li key={game.id} className="grid">
-                <GameCard game={game} owned={ownedGameIds?.has(game.id) ?? false} />
+                <GameCard game={game} owned={isGameOwned(ownedGameIds, game.id)} />
               </li>
             ))}
           </ul>
