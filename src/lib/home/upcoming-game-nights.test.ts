@@ -26,8 +26,10 @@ function gameNight(id: number, startsAt: string, hostId = 99): GameNightResponse
   };
 }
 
-function user(id: number): PublicUser {
-  return { id, name: `User ${id}`, bio: null, avatar_url: null };
+// The intersection keeps this fixture valid both before and after `username`
+// becomes a required field on PublicUser; simplify to `PublicUser` once it has.
+function user(id: number): PublicUser & { username: string } {
+  return { id, name: `User ${id}`, username: `user_${id}`, bio: null, avatar_url: null };
 }
 
 function member(userId: number, status: GameNightMemberStatus): GameNightMember {
