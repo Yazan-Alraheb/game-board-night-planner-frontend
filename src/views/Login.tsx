@@ -22,18 +22,20 @@ export default function Login({ next }: { next?: string }) {
     event.preventDefault();
     setError("");
     setLoading(true);
-    const data = new FormData(event.currentTarget);
-    const email = String(data.get("email") ?? "").trim();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const identifier = String(data.get("identifier") ?? "").trim();
     const password = String(data.get("password") ?? "");
 
     try {
-      const response = await loginUser({ email, password });
+      const response = await loginUser({ identifier, password });
       signIn(response);
+      form.reset();
       router.replace(destination);
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        if (err.response?.status === 401) setError("Incorrect email or password.");
-        else if (err.response?.status === 422) setError("Please enter a valid email and password.");
+        if (err.response?.status === 401) setError("Incorrect username, email, or password.");
+        else if (err.response?.status === 422) setError("Please enter your username or email and password.");
         else setError("Unable to log in. Please try again.");
       } else {
         setError("An unexpected error occurred.");
@@ -52,10 +54,25 @@ export default function Login({ next }: { next?: string }) {
         </div>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium">Email</label>
-            <input id="email" type="email" name="email" placeholder="Enter your email"
-              autoComplete="email" required maxLength={254}
-              className="h-11 w-full rounded-lg border border-input bg-background px-3 outline-none focus-visible:ring-2 focus-visible:ring-brand" />
+            <label
+              htmlFor="identifier"
+              className="text-sm font-medium"
+            >
+              Username or Email
+            </label>
+
+            <input
+              id="identifier"
+              name="identifier"
+              type="text"
+              placeholder="Enter your username or email"
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              required
+              maxLength={254}
+              className="h-11 w-full rounded-lg border border-input bg-background px-3 outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            />
           </div>
           <div className="space-y-2">
             <label htmlFor="password" className="text-sm font-medium">Password</label>

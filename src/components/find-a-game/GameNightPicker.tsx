@@ -128,7 +128,16 @@ function GameNightPicker({
                   }
                   aside={
                     <span className="flex shrink-0 flex-col items-end gap-1 self-start">
-                      <Badge className="h-auto bg-brand-soft px-2.5 py-0.5 text-xs font-medium text-brand-strong">
+                      <Badge
+                        className={cn(
+                          "h-auto px-2.5 py-0.5 text-xs font-medium text-brand-strong",
+                          // The selected card is already brand-soft, so the badge switches to
+                          // white with a border to stay visible.
+                          selectedId === gameNight.id
+                            ? "border-brand-strong/30 bg-white"
+                            : "bg-brand-soft",
+                        )}
+                      >
                         {isHost ? "Hosting" : "Guest"}
                       </Badge>
                       {isPast && (

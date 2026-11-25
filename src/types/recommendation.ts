@@ -1,3 +1,6 @@
+import type { PublicUser } from "@/types/friend";
+import type { Game } from "@/types/game";
+
 /**
  * Request types for POST /api/recommendations.
  *
@@ -36,3 +39,28 @@ export interface GameNightRecommendationRequest extends RecommendationRequestBas
 export type RecommendationRequest =
   | PersonalRecommendationRequest
   | GameNightRecommendationRequest;
+
+// ---------------------------------------------------------------------------
+// Response types (POST /api/recommendations)
+// Checked against the live backend schemas RecommendationListResponse,
+// Recommendation, RecommendedGame and PublicUser.
+// ---------------------------------------------------------------------------
+
+/** Backend schema: RecommendedGame. Same fields as a catalog game. */
+export type RecommendedGame = Game;
+
+/** Backend schema: Recommendation */
+export interface Recommendation {
+  game: RecommendedGame;
+  /** 0–100, rounded to two decimals by the backend. */
+  score: number;
+  /** Backend-written explanation. Describes group fit only in aggregate. */
+  reason: string;
+  /** Eligible owners of this game, ordered by user id. */
+  owners: PublicUser[];
+}
+
+/** Backend schema: RecommendationListResponse. Already ranked by the backend; keep this order. */
+export interface RecommendationListResponse {
+  recommendations: Recommendation[];
+}

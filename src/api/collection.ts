@@ -33,7 +33,7 @@ export async function addToCollection(
   return response.data;
 }
 
-// change a game between owned and the wishlist
+// Change a game between owned and wishlist.
 export async function updateCollectionStatus(
   userId: number,
   gameId: number,
@@ -47,7 +47,7 @@ export async function updateCollectionStatus(
   return response.data;
 }
 
-// Removes a game from the users collection
+// Remove a game from the user's collection.
 export async function removeFromCollection(
   userId: number,
   gameId: number,

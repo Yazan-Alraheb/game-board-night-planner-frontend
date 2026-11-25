@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { ArrowRight, RotateCw } from "lucide-react";
+import { getApiErrorInfo } from "@/api/errors";
+import { useOwnedGameIds } from "@/hooks/useOwnedGameIds";
+import { isGameOwned } from "@/lib/home/owned-games";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import GameCard from "@/components/home/GameCard";
@@ -36,6 +38,8 @@ function GameCardSkeleton() {
 function DiscoverGamesSection() {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
+  // Loaded separately so the public games list never waits for, or fails because of, the collection.
+  const ownedGameIds = useOwnedGameIds();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -43,8 +47,10 @@ function DiscoverGamesSection() {
     getGames({ limit: HOMEPAGE_GAME_LIMIT }, controller.signal)
       .then((data) => setState({ status: "success", games: data.games }))
       .catch((error: unknown) => {
-        if (axios.isCancel(error)) return; // Component unmounted or retried.
-        console.error("Failed to load games", error);
+        const info = getApiErrorInfo(error);
+        if (info.kind === "canceled") return; // Component unmounted or retried.
+        // Log only status/kind: the Axios error's config holds the Authorization header.
+        console.error("Failed to load games", info.kind, info.status);
         setState({ status: "error" });
       });
 
@@ -107,8 +113,7 @@ function DiscoverGamesSection() {
           <ul className={GRID_CLASSES}>
             {state.games.map((game) => (
               <li key={game.id} className="grid">
-                {/* TODO(collection): pass `owned` once the authenticated collection endpoint is connected. */}
-                <GameCard game={game} />
+                <GameCard game={game} owned={isGameOwned(ownedGameIds, game.id)} />
               </li>
             ))}
           </ul>
