@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Tabs } from "@base-ui/react/tabs";
 import { CalendarHeart, CircleCheck, RotateCcw, X } from "lucide-react";
 import OverviewGameNightCard from "@/components/game-nights/OverviewGameNightCard";
+import Toast from "@/components/game-nights/Toast";
 import {
   CreateGameNightLink,
   EmptyState,
@@ -12,6 +13,7 @@ import {
 } from "@/components/game-nights/OverviewStates";
 import type { ApiErrorInfo } from "@/api/errors";
 import { useGameNightsOverview, type RsvpAnswer } from "@/hooks/useGameNightsOverview";
+import { consumeOverviewFlash } from "@/lib/game-nights/flash";
 import { groupGameNights, type OverviewEntry, type OverviewTab } from "@/lib/game-nights/overview";
 import { cn } from "@/lib/utils";
 
@@ -44,11 +46,24 @@ function GameNights() {
   const [tab, setTab] = useState<OverviewTab>("upcoming");
   const [now, setNow] = useState(() => Date.now());
   const [notice, setNotice] = useState<Notice | null>(null);
+  // Confirmation after deleting or leaving a night on its details page.
+  const [toast, setToast] = useState<string | null>(null);
+  const dismissToast = useCallback(() => setToast(null), []);
   const noticeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), NOW_REFRESH_MS);
     return () => window.clearInterval(timer);
+  }, []);
+
+  // A message left by the details page after the user deleted or left a night.
+  // Read after the first paint (and only if not cancelled), so it's consumed exactly once.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const flash = consumeOverviewFlash();
+      if (flash) setToast(flash);
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   const groups = useMemo(
@@ -114,6 +129,7 @@ function GameNights() {
 
   return (
     <div className="min-h-screen bg-surface-warm">
+      <Toast message={toast} onDismiss={dismissToast} />
       <section className="bg-brand px-4 py-12 text-brand-foreground">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">

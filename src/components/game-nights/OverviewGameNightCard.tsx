@@ -1,4 +1,5 @@
-import { CalendarDays, MapPin, RotateCcw, UserRound } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, CalendarDays, MapPin, RotateCcw, UserRound } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import AttendeeAvatars from "@/components/home/AttendeeAvatars";
 import GameNightStatusBadge from "@/components/game-nights/GameNightStatusBadge";
@@ -6,6 +7,7 @@ import RsvpActions from "@/components/game-nights/RsvpActions";
 import type { RsvpAnswer } from "@/hooks/useGameNightsOverview";
 import { isPastGameNight } from "@/lib/find-game/game-nights";
 import { formatEventDate } from "@/lib/format";
+import { gameNightPath } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import {
   findHost,
@@ -103,6 +105,16 @@ function OverviewGameNightCard({
         <div className="mt-5">
           <Attendees entry={entry} onRetry={onRetryMembers} statusUnknown={status === null} />
         </div>
+
+        {/* A separate link rather than a whole-card link, so it never wraps the RSVP buttons. */}
+        <Link
+          href={gameNightPath(gameNight.id)}
+          className="mt-4 -ml-2 inline-flex min-h-11 items-center gap-1.5 self-start rounded-lg px-2 font-semibold text-brand-strong hover:bg-brand-soft focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+        >
+          View details
+          <span className="sr-only"> for {gameNight.name}</span>
+          <ArrowRight className="size-4" aria-hidden="true" />
+        </Link>
 
         {answers.length > 0 && (
           <div className="mt-auto pt-6">
