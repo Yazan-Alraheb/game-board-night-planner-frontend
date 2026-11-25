@@ -1,6 +1,7 @@
 export interface PublicUser {
   id: number;
   name: string;
+  username: string;
   bio: string | null;
   avatar_url: string | null;
 }

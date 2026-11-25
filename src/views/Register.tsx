@@ -24,11 +24,18 @@ export default function Register({ next }: { next?: string }) {
     setError("");
     const data = new FormData(event.currentTarget);
     const name = String(data.get("name") ?? "").trim();
+    const username = String(data.get("username") ?? "").trim();
     const email = String(data.get("email") ?? "").trim();
     const password = String(data.get("password") ?? "");
     const confirmPassword = String(data.get("confirmPassword") ?? "");
 
     if (!name) { setError("Please enter your full name."); return; }
+    if (!/^[a-zA-Z0-9_]{3,32}$/.test(username)) {
+      setError(
+        "Username must be 3–32 characters and contain only letters, numbers, and underscores."
+      );
+      return;
+    }
     if (password.length < 8 || password.length > 100) {
       setError("Password must be between 8 and 100 characters."); return;
     }
@@ -38,12 +45,22 @@ export default function Register({ next }: { next?: string }) {
 
     setLoading(true);
     try {
-      const response = await registerUser({ name, email, password });
+      const response = await registerUser({name, username, email, password});
       signIn(response);
       router.replace(destination);
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        if (err.response?.status === 409) setError("This email is already registered.");
+        if (err.response?.status === 409) {
+          const detail = err.response.data?.detail;
+
+          if (detail === "Username is already registered") {
+            setError("This username is already taken.");
+          } else if (detail === "Email is already registered") {
+            setError("This email is already registered.");
+          } else {
+            setError("This account already exists.");
+          }
+        }
         else if (err.response?.status === 422) setError("Please check your registration information.");
         else setError("Unable to create account. Please try again.");
       } else {
@@ -66,6 +83,36 @@ export default function Register({ next }: { next?: string }) {
             <label htmlFor="name" className="text-sm font-medium">Full Name</label>
             <input id="name" name="name" type="text" placeholder="Enter your full name"
               autoComplete="name" minLength={1} maxLength={100} required className={inputClass} />
+          </div>
+          <div className="space-y-2">
+            <label
+              htmlFor="username"
+              className="text-sm font-medium"
+            >
+              Username
+            </label>
+
+            <input
+              id="username"
+              name="username"
+              type="text"
+              placeholder="Choose a unique username"
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              minLength={3}
+              maxLength={32}
+              required
+              className={inputClass}
+              aria-describedby="username-help"
+            />
+
+            <p
+              id="username-help"
+              className="text-xs text-muted-foreground"
+            >
+              3–32 characters. Letters, numbers, and underscores only.
+            </p>
           </div>
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium">Email</label>

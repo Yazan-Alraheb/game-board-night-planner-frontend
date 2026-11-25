@@ -16,7 +16,8 @@ export async function getFriends(): Promise<PublicUser[]> {
   return response.data.friends;
 }
 
-// Search for users by name
+// Search by name or username
+// Prefix with @ for an exact username match
 export async function searchUsers(
   search: string
 ): Promise<PublicUser[]> {
