@@ -74,6 +74,48 @@ Protected routes require login, and users return to their previous page after su
 
 For production, HttpOnly cookie authentication with CSRF protection is recommended.
 
+### Registration
+
+Users register with a full name, unique username, email, and password.
+
+Username requirements:
+
+- Between 3 and 32 characters.
+- Letters, numbers, and underscores only.
+- Case-insensitive and stored in lowercase.
+- Must be unique.
+
+### Login
+
+Users can log in using either their username or email.
+
+Protected routes require login, and users return to their previous page after successfully logging in.
+
+Logging out clears the authentication session. Login form values are reset after successful authentication.
+
+Sessions created before the username update require users to log in again.
+
+For production, HttpOnly cookie authentication with CSRF protection is recommended.
+
+
+## Friends and Username Search
+
+Users can search for other members by display name or username.
+
+- Partial name and username searches are supported.
+- Searches are case-insensitive.
+- Use @username for an exact username match.
+
+Usernames are displayed in search results, incoming requests, outgoing requests, and the friends list.
+
+## Username Backend Compatibility
+
+This frontend requires the backend username implementation.
+
+Existing PostgreSQL databases must apply the username migration documented in the backend repository before using this feature.
+
+Existing accounts receive generated usernames and retain their original email and password.
+
 ## Project Structure
 
 - `src/app/` - Next.js pages and layouts

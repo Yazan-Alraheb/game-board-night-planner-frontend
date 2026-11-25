@@ -109,7 +109,7 @@ export default function FindFriends({
       </h2>
 
       <p className="text-muted-foreground">
-        Search for other Game Night members by name.
+        Search by name or username. Use @username for an exact match.
       </p>
 
       {/* Search bar */}
@@ -119,10 +119,10 @@ export default function FindFriends({
       >
         <input
           type="search"
-          aria-label="Search users by name"
+          aria-label="Search users by name or username"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search users by name..."
+          placeholder="Search name or username..."
           disabled={searching || sendingId !== null}
           required
           className="h-11 min-w-0 flex-1 rounded-lg border border-input bg-background px-4 outline-none focus-visible:ring-2 focus-visible:ring-brand"
@@ -193,9 +193,13 @@ export default function FindFriends({
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold">
+                  <h3 className="break-words font-semibold">
                     {user.name}
                   </h3>
+
+                  <p className="break-words text-sm font-medium text-brand-strong">
+                    @{user.username}
+                  </p>
 
                   <p className="text-sm text-muted-foreground">
                     {user.bio || "Game Night member"}
