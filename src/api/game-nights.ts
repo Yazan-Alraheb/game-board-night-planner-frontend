@@ -7,6 +7,8 @@ import type {
   GameNightMember,
   GameNightMembersResponse,
   GameNightResponse,
+  RsvpResponse,
+  RsvpUpdate,
 } from "@/types/game-night";
 
 /** GET /api/game-nights: game nights the current user hosts or is a member of. */
@@ -78,5 +80,26 @@ export async function addGameToGameNight(
   const response = await api.post<GameNightGameResponse>(`/game-nights/${gameNightId}/games`, {
     game_id: gameId,
   });
+  return response.data;
+}
+
+const RSVP_STATUSES: readonly string[] = ["pending", "accepted", "declined"];
+
+/**
+ * PUT /api/game-nights/{id}/rsvp: the current user answers their own invitation.
+ * Returns the status the backend saved. Backend errors: 403 (not invited, or the host
+ * tried to decline), 404 (night deleted or no longer visible), 422 (invalid body).
+ */
+export async function updateRsvp(
+  gameNightId: number,
+  status: RsvpUpdate["status"],
+): Promise<RsvpResponse> {
+  const body: RsvpUpdate = { status };
+  const response = await api.put<RsvpResponse>(`/game-nights/${gameNightId}/rsvp`, body);
+
+  if (!response.data || !RSVP_STATUSES.includes(response.data.status)) {
+    throw new Error("Unexpected response format from PUT /api/game-nights/{id}/rsvp");
+  }
+
   return response.data;
 }

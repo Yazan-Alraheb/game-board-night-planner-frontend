@@ -64,3 +64,14 @@ export interface GameNightGameResponse {
   game_id: number;
   game_night_id: number;
 }
+
+/** Backend schema: RSVPUpdate (PUT /api/game-nights/{id}/rsvp). Only the invitee's own answer. */
+export interface RsvpUpdate {
+  status: Exclude<GameNightMemberStatus, "pending">;
+}
+
+/** Backend schema: RSVPResponse */
+export interface RsvpResponse {
+  game_night_id: number;
+  status: GameNightMemberStatus;
+}
