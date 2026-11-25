@@ -21,7 +21,7 @@ const NOW = new Date("2026-11-25T12:00:00Z").getTime();
 const HOUR = 60 * 60 * 1000;
 
 function user(id: number) {
-  return { id, name: `User ${id}`, bio: null, avatar_url: null };
+  return { id, name: `User ${id}`, username: `user_${id}`, bio: null, avatar_url: null };
 }
 
 function member(id: number, status: GameNightMemberStatus): GameNightMember {

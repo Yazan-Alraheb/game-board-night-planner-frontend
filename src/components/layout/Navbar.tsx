@@ -19,6 +19,8 @@ interface NavItem {
 const NAV_ITEMS: readonly NavItem[] = [
   { label: "Home", to: ROUTES.home },
   { label: "Find a Game", to: ROUTES.findGame, related: [ROUTES.recommendations] },
+  // Nested routes (/game-nights/new, /game-nights/42) also highlight this via matchesRoute.
+  { label: "Game Nights", to: ROUTES.gameNights },
   { label: "Browse", to: ROUTES.browse },
   { label: "My Collection", to: ROUTES.collection },
   { label: "Friends", to: ROUTES.friends },
@@ -101,7 +103,7 @@ function Navbar() {
         </Link>
 
         <nav aria-label="Main" className="mx-auto hidden xl:block">
-          <ul className="flex items-center gap-1">
+          <ul className="flex items-center gap-0.5">
             {NAV_ITEMS.map((item) => {
               const active = isNavItemActive(item, pathname);
               return (
@@ -109,8 +111,9 @@ function Navbar() {
                   <Link
                     href={item.to}
                     aria-current={active ? "page" : undefined}
-                    // Slightly tighter than the mobile menu so all items fit beside the actions.
-                    className={cn(navLinkClass(active), "px-3")}
+                    // Tighter than the mobile menu so all items and the username fit beside
+                    // the actions (the header content is capped at max-w-7xl).
+                    className={cn(navLinkClass(active), "px-2")}
                   >
                     {item.label}
                   </Link>
@@ -120,7 +123,7 @@ function Navbar() {
           </ul>
         </nav>
 
-        <div className="ml-auto flex min-w-0 items-center gap-3 xl:ml-0">
+        <div className="ml-auto flex min-w-0 items-center gap-3 xl:ml-0 xl:gap-2">
           <Link
             href={ROUTES.createGameNight}
             className={cn(
@@ -132,7 +135,7 @@ function Navbar() {
           </Link>
 
           {session ? (
-            <div className="hidden min-w-0 items-center gap-3 xl:flex">
+            <div className="hidden min-w-0 items-center gap-2 xl:flex">
               <Link
                 href={ROUTES.dashboard}
                 title={session.user.name}

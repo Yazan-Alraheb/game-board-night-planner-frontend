@@ -138,7 +138,14 @@ function UpcomingGameNightsSection() {
               ))}
             </ul>
             {state.data.hasMore && (
-              <p className="mt-4 text-muted-foreground">More upcoming game nights</p>
+              <p className="mt-4 text-muted-foreground">
+                <Link
+                  href={ROUTES.gameNights}
+                  className="rounded-sm font-semibold text-brand-strong hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                >
+                  More upcoming game nights
+                </Link>
+              </p>
             )}
           </>
         ) : (

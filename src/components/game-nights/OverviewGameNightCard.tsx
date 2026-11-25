@@ -15,15 +15,6 @@ import {
   summarizeAttendees,
   type OverviewEntry,
 } from "@/lib/game-nights/overview";
-import type { PublicUser } from "@/types/friend";
-
-/**
- * AttendeeAvatars currently reads `display_name`; the unmerged homepage update switches it
- * to PublicUser's `name`. Passing both keeps this card working before and after that merge.
- */
-function toAvatarPeople(users: readonly PublicUser[]) {
-  return users.map((user) => ({ ...user, display_name: user.name }));
-}
 
 const fullDateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "full", timeStyle: "short" });
 
@@ -170,7 +161,7 @@ function Attendees({
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      {going.length > 0 && <AttendeeAvatars attendees={toAvatarPeople(going)} />}
+      {going.length > 0 && <AttendeeAvatars attendees={going} />}
       <p className="text-muted-foreground">
         <span className="font-semibold text-foreground">{going.length} going</span>
         {pendingCount > 0 && <> · {pendingCount} awaiting reply</>}

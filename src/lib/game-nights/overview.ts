@@ -8,6 +8,11 @@
 
 import type { ApiErrorInfo } from "@/api/errors";
 import { isPastGameNight } from "@/lib/find-game/game-nights";
+import {
+  summarizeAttendees as summarizeHomeAttendees,
+  type AttendeeSummary,
+  type GameNightRole,
+} from "@/lib/home/upcoming-game-nights";
 import type { PublicUser } from "@/types/friend";
 import type {
   GameNightMember,
@@ -16,8 +21,8 @@ import type {
   RsvpUpdate,
 } from "@/types/game-night";
 
-/** The current user's relationship to a night, as labelled on its card. */
-export type MyGameNightStatus = "hosting" | "going" | "invited" | "declined";
+/** The current user's relationship to a night, as labelled on its card (same as the homepage's). */
+export type MyGameNightStatus = GameNightRole;
 
 export type MembersState =
   | { status: "loading" }
@@ -41,6 +46,9 @@ export function loadedMembers(state: MembersState | undefined): GameNightMember[
  * Hosting comes from host_id. Otherwise the user's own membership decides.
  * Returns null when it can't be known: members not loaded (or failed), or the user
  * isn't in the list (e.g. removed since the list loaded).
+ *
+ * Unlike the homepage's getGameNightRole, this never falls back to "invited": the
+ * overview sorts nights into tabs by status, so an unknown status must stay unknown.
  */
 export function getMyStatus(
   gameNight: GameNightResponse,
@@ -137,25 +145,15 @@ export function canRespondToInvitation(
   return getMyStatus(gameNight, userId, members) === "invited" && !isPastGameNight(gameNight, now);
 }
 
-export interface AttendeeSummary {
-  /** Accepted members, host first. The backend stores the host as accepted. */
-  going: PublicUser[];
-  /** Invitations nobody has answered yet. */
-  pendingCount: number;
-}
-
+/** The homepage's attendee summary, with the host moved to the front of `going`. */
 export function summarizeAttendees(
   members: readonly GameNightMember[],
   hostId: number,
 ): AttendeeSummary {
-  const going = members
-    .filter((member) => member.status === "accepted")
-    .map((member) => member.user)
-    .sort((a, b) => Number(b.id === hostId) - Number(a.id === hostId));
-
+  const summary = summarizeHomeAttendees(members);
   return {
-    going,
-    pendingCount: members.filter((member) => member.status === "pending").length,
+    ...summary,
+    going: summary.going.sort((a, b) => Number(b.id === hostId) - Number(a.id === hostId)),
   };
 }
 
