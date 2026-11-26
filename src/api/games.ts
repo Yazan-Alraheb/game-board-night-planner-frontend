@@ -40,6 +40,12 @@ export async function getGame(
     { signal },
   );
 
+  if (!response.data || !response.data.game) {
+    throw new Error(
+      "Unexpected response format from GET /api/games/{id}",
+    );
+  }
+
   return response.data.game;
 }
 
