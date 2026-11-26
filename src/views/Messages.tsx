@@ -1,130 +1,34 @@
 "use client";
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import axios from "axios";
-import { MessageCircle, Plus, Send, X } from "lucide-react";
-import api from "@/api/client";
-import { getFriends } from "@/api/friends";
-import { useAuth } from "@/auth/useAuth";
+
+import { useState } from "react";
+import { MessageCircle, Plus, X } from "lucide-react";
+import ChatPane from "@/components/messages/ChatPane";
+import ConversationList from "@/components/messages/ConversationList";
+import FriendPicker from "@/components/messages/FriendPicker";
 import { Button } from "@/components/ui/button";
-import { getInitials, placeholderColor } from "@/lib/format";
+import { useMessages } from "@/hooks/useMessages";
+import { activeThread } from "@/lib/messages/chat-store";
 import { cn } from "@/lib/utils";
 import type { PublicUser } from "@/types/friend";
 
-interface Conversation {
-  id: number;
-  type: "private" | "group";
-  game_night_id: number | null;
-  participants: PublicUser[];
-  created_at: string;
-}
-
-interface Message {
-  id: number;
-  conversation_id: number;
-  user_id: number;
-  content: string;
-  created_at: string;
-}
-
-const timeFormat = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" });
-
-function Avatar({ person, className }: { person: PublicUser; className?: string }) {
-  return (
-    <span className={cn("flex shrink-0 items-center justify-center overflow-hidden rounded-full font-bold", placeholderColor(person.id), className)}>
-      {person.avatar_url ? <img src={person.avatar_url} alt="" className="size-full object-cover" /> : getInitials(person.name)}
-    </span>
-  );
-}
+const PICKER_ID = "new-chat-picker";
 
 export default function Messages() {
-  const { session } = useAuth();
-  const myId = session?.user.id;
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [friends, setFriends] = useState<PublicUser[]>([]);
-  const [activeId, setActiveId] = useState<number | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [draft, setDraft] = useState("");
+  const { state, store, myId } = useMessages();
   const [picking, setPicking] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const bottomRef = useRef<HTMLDivElement>(null);
 
-  async function loadConversations() {
-    const response = await api.get<{ conversations: Conversation[] }>("/conversations");
-    setConversations(response.data.conversations);
-    return response.data.conversations;
-  }
-
-  useEffect(() => {
-    api
-      .get<{ conversations: Conversation[] }>("/conversations")
-      .then((response) => setConversations(response.data.conversations))
-      .catch(() => setError("Unable to load messages. Please try again."))
-      .finally(() => setLoading(false));
-    getFriends().then(setFriends).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (activeId === null) return;
-
-    function loadMessages() {
-      api
-        .get<{ messages: Message[] }>(`/conversations/${activeId}/messages`)
-        .then((response) => setMessages([...response.data.messages].reverse()))
-        .catch(() => {});
-    }
-
-    loadMessages();
-    const timer = setInterval(loadMessages, 5000);
-    return () => clearInterval(timer);
-  }, [activeId]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [messages]);
-
-  const others = (c: Conversation) => c.participants.filter((p) => p.id !== myId);
-  const title = (c: Conversation) => others(c).map((p) => p.name).join(", ") || "Just you";
-  const active = conversations.find((c) => c.id === activeId);
-
-  function findChatWith(list: Conversation[], friend: PublicUser) {
-    return list.find((c) => c.type === "private" && others(c).some((p) => p.id === friend.id));
-  }
+  const conversations = state.conversations.status === "success" ? state.conversations.data : [];
+  const active = conversations.find((conversation) => conversation.id === state.activeId) ?? null;
+  const thread = activeThread(state);
 
   async function startChat(friend: PublicUser) {
-    setPicking(false);
-    setError("");
-    const existing = findChatWith(conversations, friend);
-    if (existing) {
-      setActiveId(existing.id);
-      return;
-    }
-    try {
-      const response = await api.post<{ conversation: Conversation }>("/conversations", { participant_ids: [friend.id], type: "private" });
-      setConversations([response.data.conversation, ...conversations]);
-      setActiveId(response.data.conversation.id);
-    } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 409) {
-        const match = findChatWith(await loadConversations(), friend);
-        if (match) setActiveId(match.id);
-      } else {
-        setError("Unable to start a conversation. Please try again.");
-      }
-    }
+    // ChatStore.startChat never rejects; it reports failures in state.startError.
+    if (await store.startChat(friend)) setPicking(false);
   }
 
-  async function handleSend(event: FormEvent) {
-    event.preventDefault();
-    const content = draft.trim();
-    if (!content || activeId === null) return;
-    setDraft("");
-    try {
-      const response = await api.post<{ message: Message }>(`/conversations/${activeId}/messages`, { content });
-      setMessages((previous) => [...previous, response.data.message]);
-    } catch {
-      setDraft(content);
-      setError("Message failed to send. Please try again.");
-    }
+  function togglePicker() {
+    store.dismissStartError();
+    setPicking(!picking);
   }
 
   return (
@@ -141,76 +45,66 @@ export default function Messages() {
 
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         <div className="grid overflow-hidden rounded-3xl border bg-white md:h-[600px] md:grid-cols-[300px_1fr]">
-          <aside className="flex flex-col border-b md:border-r md:border-b-0">
+          {/* On small screens the list is capped so the open chat stays within reach. */}
+          <aside className="flex max-h-80 min-h-0 flex-col border-b md:max-h-none md:border-r md:border-b-0">
             <div className="flex items-center justify-between border-b p-4">
               <h2 className="text-xl font-bold">Chats</h2>
-              <Button variant="outline" onClick={() => setPicking(!picking)} className="h-9 rounded-xl">
-                {picking ? <X className="size-4" /> : <Plus className="size-4" />}
+              <Button
+                variant="outline"
+                onClick={togglePicker}
+                aria-expanded={picking}
+                aria-controls={PICKER_ID}
+                className="h-9 rounded-xl"
+              >
+                {picking ? <X className="size-4" aria-hidden="true" /> : <Plus className="size-4" aria-hidden="true" />}
                 {picking ? "Cancel" : "New"}
               </Button>
             </div>
 
             {picking ? (
-              <ul className="flex-1 overflow-y-auto p-2">
-                {friends.length === 0 && <li className="p-4 text-sm text-muted-foreground">Add friends to start chatting.</li>}
-                {friends.map((f) => (
-                  <li key={f.id}>
-                    <button type="button" onClick={() => startChat(f)} className="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-muted">
-                      <Avatar person={f} className="size-10 text-sm" />
-                      <span className="font-medium">{f.name}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <FriendPicker
+                id={PICKER_ID}
+                friends={state.friends}
+                startingWith={state.startingWith}
+                startError={state.startError}
+                onStart={(friend) => void startChat(friend)}
+                onRetryFriends={() => void store.loadFriends()}
+              />
             ) : (
-              <ul className="flex-1 overflow-y-auto p-2">
-                {loading && <li className="p-4 text-sm text-muted-foreground">Loading chats...</li>}
-                {!loading && conversations.length === 0 && <li className="p-4 text-sm text-muted-foreground">No chats yet. Tap New to message a friend.</li>}
-                {conversations.map((c) => (
-                  <li key={c.id}>
-                    <button type="button" onClick={() => setActiveId(c.id)} className={cn("flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-muted", c.id === activeId && "bg-brand-soft text-brand-strong hover:bg-brand-soft")}>
-                      {others(c)[0] && <Avatar person={others(c)[0]} className="size-10 text-sm" />}
-                      <span className="min-w-0">
-                        <span className="block truncate font-medium">{title(c)}</span>
-                        <span className="block text-xs text-muted-foreground">{c.game_night_id ? "Game night chat" : c.type === "group" ? "Group" : "Direct message"}</span>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <ConversationList
+                conversations={state.conversations}
+                activeId={state.activeId}
+                myId={myId}
+                onSelect={(id) => store.select(id)}
+                onRetry={() => void store.loadConversations()}
+              />
             )}
           </aside>
 
-          <section className="flex min-h-[400px] flex-col">
+          {/* The pane has its own height on small screens so only the message list scrolls. */}
+          <section
+            aria-label={active ? "Open chat" : undefined}
+            className={cn(
+              "flex min-w-0 flex-col md:h-auto md:min-h-0",
+              active ? "h-[75svh] min-h-[420px]" : "min-h-[300px]",
+            )}
+          >
             {active ? (
-              <>
-                <div className="flex items-center gap-3 border-b p-4">
-                  {others(active)[0] && <Avatar person={others(active)[0]} className="size-10 text-sm" />}
-                  <h2 className="truncate text-lg font-bold">{title(active)}</h2>
-                </div>
-
-                <div className="flex flex-1 flex-col gap-2 overflow-y-auto bg-surface-warm/50 p-4">
-                  {messages.length === 0 && <p className="m-auto text-sm text-muted-foreground">Say hello</p>}
-                  {messages.map((m) => {
-                    const mine = m.user_id === myId;
-                    return (
-                      <div key={m.id} className={cn("max-w-[75%] rounded-2xl px-4 py-2", mine ? "self-end bg-brand text-white" : "self-start border bg-white")}>
-                        <p className="break-words whitespace-pre-wrap">{m.content}</p>
-                        <p className={cn("mt-1 text-xs", mine ? "text-white/70" : "text-muted-foreground")}>{timeFormat.format(new Date(m.created_at))}</p>
-                      </div>
-                    );
-                  })}
-                  <div ref={bottomRef} />
-                </div>
-
-                <form onSubmit={handleSend} className="flex gap-2 border-t p-4">
-                  <input value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={2000} placeholder="Type a message..." className="flex-1 rounded-xl border px-4 py-3 focus-visible:border-brand focus-visible:outline-none" />
-                  <Button type="submit" disabled={!draft.trim()} className="h-auto rounded-xl bg-cta px-5 text-cta-foreground hover:bg-cta/90">
-                    <Send className="size-4" />
-                    Send
-                  </Button>
-                </form>
-              </>
+              <ChatPane
+                key={active.id}
+                conversation={active}
+                thread={thread}
+                myId={myId}
+                draft={state.drafts[active.id] ?? ""}
+                sending={state.sending[active.id] ?? false}
+                sendFailure={state.sendFailures[active.id] ?? null}
+                onDraftChange={(text) => store.setDraft(active.id, text)}
+                onSend={() => void store.send(active.id)}
+                onRetrySend={() => void store.retrySend(active.id)}
+                onDismissSendFailure={() => store.dismissSendFailure(active.id)}
+                onRetryLoad={() => store.retryMessages()}
+                onRefreshNow={() => store.poll()}
+              />
             ) : (
               <div className="m-auto flex flex-col items-center gap-2 p-10 text-center text-muted-foreground">
                 <MessageCircle className="size-12 text-brand" aria-hidden="true" />
@@ -218,7 +112,6 @@ export default function Messages() {
                 <p className="text-sm">Choose a conversation or start a new one.</p>
               </div>
             )}
-            {error && <p role="alert" className="border-t px-4 py-2 text-sm text-destructive">{error}</p>}
           </section>
         </div>
       </div>
