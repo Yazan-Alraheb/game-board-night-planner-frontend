@@ -10,7 +10,7 @@ export const ROUTES = {
   recommendations: "/recommendations",
   browse: "/browse", // PLACEHOLDER
   collection: "/collection", // PLACEHOLDER
-  messages: "/messages", // PLACEHOLDER
+  messages: "/messages",
   gameNights: "/game-nights",
   createGameNight: "/game-nights/new", // PLACEHOLDER
   register: "/register",
