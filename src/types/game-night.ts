@@ -64,3 +64,36 @@ export interface GameNightGameResponse {
   game_id: number;
   game_night_id: number;
 }
+
+/** Backend schema: RSVPUpdate (PUT /api/game-nights/{id}/rsvp). Only the invitee's own answer. */
+export interface RsvpUpdate {
+  status: Exclude<GameNightMemberStatus, "pending">;
+}
+
+/** Backend schema: RSVPResponse */
+export interface RsvpResponse {
+  game_night_id: number;
+  status: GameNightMemberStatus;
+}
+
+/**
+ * Backend schema: GameNightUpdate (PUT /api/game-nights/{id}). Host only.
+ * A full replacement of these four fields; extra keys are rejected with 422.
+ * `starts_at` must include a timezone offset (pydantic AwareDatetime).
+ */
+export interface GameNightUpdate {
+  name: string;
+  starts_at: string;
+  location: string;
+  notes: string | null;
+}
+
+/** Backend schema: GameNightInvite (POST /api/game-nights/{id}/members). Host only. */
+export interface GameNightInvite {
+  user_id: number;
+}
+
+/** Backend schema: GameNightMemberResponse */
+export interface GameNightMemberResponse {
+  member: GameNightMember;
+}

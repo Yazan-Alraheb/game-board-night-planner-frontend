@@ -13,6 +13,7 @@ import type { Game } from "@/types/game";
 
 interface GameCardProps {
   game: Game;
+  /** Whether the game is in the current user's collection. */
   owned?: boolean;
 }
 
@@ -27,21 +28,29 @@ function GameCard({ game, owned = false }: GameCardProps) {
     image_url,
   } = game;
 
-  // Use the placeholder if the image does not load.
-  const [imageError, setImageError] = useState(false);
+  // Stores the image URL if loading it fails.
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
 
-  const showImage = image_url && !imageError;
+  // Only display the image if it exists and has not failed.
+  const showImage =
+    image_url !== null && image_url !== failedImageUrl;
 
   return (
-    <Link href={`/games/${id}`} className="block h-full">
-      <Card className="h-full gap-0 rounded-2xl py-0">
+    // Makes the entire card clickable.
+    <Link
+      href={`/games/${id}`}
+      className="block h-full rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+      aria-label={`View details for ${name}`}
+    >
+      <Card className="h-full gap-0 rounded-2xl py-0 transition hover:-translate-y-1 hover:shadow-lg">
+        {/* Game image or fallback initials. */}
         <div className="relative aspect-4/3 bg-white">
           {showImage ? (
             <img
               src={image_url}
-              alt={name}
+              alt=""
               loading="lazy"
-              onError={() => setImageError(true)}
+              onError={() => setFailedImageUrl(image_url)}
               className="absolute inset-0 size-full object-contain p-3"
             />
           ) : (
@@ -53,24 +62,28 @@ function GameCard({ game, owned = false }: GameCardProps) {
             </div>
           )}
 
+          {/* Shows the Owned badge when needed. */}
           {owned && (
-            <Badge className="absolute right-3 top-3 h-auto bg-brand-strong px-3 py-1 text-sm font-medium text-brand-foreground">
+            <Badge className="absolute top-3 right-3 h-auto bg-brand-strong px-3 py-1 text-sm font-medium text-brand-foreground">
               Owned
             </Badge>
           )}
         </div>
 
+        {/* Game information. */}
         <div className="flex flex-1 flex-col p-4 sm:p-5">
           <h3 className="font-heading text-lg font-bold tracking-tight">
             {name}
           </h3>
 
+          {/* Shows the first game category. */}
           {categories.length > 0 && (
             <p className="text-muted-foreground">
               {categories[0]}
             </p>
           )}
 
+          {/* Shows player count and playtime. */}
           <dl className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <dt>
@@ -80,6 +93,7 @@ function GameCard({ game, owned = false }: GameCardProps) {
                 />
                 <span className="sr-only">Players</span>
               </dt>
+
               <dd>
                 {formatPlayerRange(
                   minimum_players,
@@ -96,6 +110,7 @@ function GameCard({ game, owned = false }: GameCardProps) {
                 />
                 <span className="sr-only">Play time</span>
               </dt>
+
               <dd>{formatPlaytime(playtime)}</dd>
             </div>
           </dl>
