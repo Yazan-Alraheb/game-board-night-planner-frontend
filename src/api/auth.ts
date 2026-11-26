@@ -2,13 +2,14 @@ import api from "@/api/client";
 
 // Data required for login
 export interface LoginRequest {
-  email: string;
+  identifier: string;
   password: string;
 }
 
 // Data required for registration
 export interface RegisterRequest {
   name: string;
+  username: string;
   email: string;
   password: string;
 }
@@ -17,6 +18,7 @@ export interface RegisterRequest {
 export interface AuthUser {
   id: number;
   name: string;
+  username: string;
   email: string;
   created_at: string;
   bio: string | null;

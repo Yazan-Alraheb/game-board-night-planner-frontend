@@ -53,10 +53,19 @@ function parseGame(value: unknown): Game | null {
 }
 
 function parseOwner(value: unknown): PublicUser | null {
-  if (!isRecord(value) || !isFiniteNumber(value.id) || typeof value.name !== "string") return null;
+  if (
+    !isRecord(value) ||
+    !isFiniteNumber(value.id) ||
+    typeof value.name !== "string" ||
+    typeof value.username !== "string"
+  ) {
+    return null;
+  }
+
   return {
     id: value.id,
     name: value.name,
+    username: value.username,
     bio: optionalString(value.bio),
     avatar_url: optionalString(value.avatar_url),
   };
