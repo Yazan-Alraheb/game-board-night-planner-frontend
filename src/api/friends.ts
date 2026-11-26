@@ -10,8 +10,12 @@ import type {
 } from "@/types/friend";
 
 // Get all accepted friends
-export async function getFriends(): Promise<PublicUser[]> {
-  const response = await api.get<FriendsResponse>("/friends");
+export async function getFriends(signal?: AbortSignal): Promise<PublicUser[]> {
+  const response = await api.get<FriendsResponse>("/friends", { signal });
+
+  if (!response.data || !Array.isArray(response.data.friends)) {
+    throw new Error("Unexpected response format from GET /api/friends");
+  }
 
   return response.data.friends;
 }

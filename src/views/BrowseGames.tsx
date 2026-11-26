@@ -1,19 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getGames } from "@/api/games";
+import { getGameCategories, getGames } from "@/api/games";
+import CategoryFilter from "@/components/games/CategoryFilter";
+import { Button } from "@/components/ui/button";
 import GameCard from "@/components/home/GameCard";
+import { useLazyResource } from "@/hooks/useLazyResource";
+import {
+  browseGamesParams,
+  EMPTY_BROWSE_FILTERS,
+  type BrowseFilters as Filters,
+  type Difficulty,
+} from "@/lib/games/browse-filters";
 import type { Game } from "@/types/game";
-
-type Difficulty = "Easy" | "Medium" | "Hard";
-
-interface Filters {
-  search: string;
-  players: string;
-  category: string;
-  difficulty: Difficulty | "";
-  playtime: string;
-}
 
 const GAMES_PER_PAGE = 8;
 
@@ -22,16 +21,15 @@ function BrowseGames() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
 
-  const [filters, setFilters] = useState<Filters>({
-    search: "",
-    players: "",
-    category: "",
-    difficulty: "",
-    playtime: "",
-  });
+  const [filters, setFilters] = useState<Filters>(EMPTY_BROWSE_FILTERS);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // Categories come from the catalog itself (same source as Find a Game and Profile),
+  // loaded once per visit; changing filters doesn't reload them.
+  const [categories, retryCategories] = useLazyResource(getGameCategories, true);
 
   // Loads games whenever the page or filters change.
   useEffect(() => {
@@ -40,19 +38,7 @@ function BrowseGames() {
     // Wait briefly after typing before calling the API.
     const timeoutId = window.setTimeout(() => {
       getGames(
-        {
-          page,
-          limit: GAMES_PER_PAGE,
-          search: filters.search || undefined,
-          players: filters.players
-            ? Number(filters.players)
-            : undefined,
-          category: filters.category || undefined,
-          difficulty: filters.difficulty || undefined,
-          playtime: filters.playtime
-            ? Number(filters.playtime)
-            : undefined,
-        },
+        browseGamesParams(filters, page, GAMES_PER_PAGE),
         controller.signal,
       )
         .then((data) => {
@@ -88,7 +74,14 @@ function BrowseGames() {
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [filters, page]);
+  }, [filters, page, reloadKey]);
+
+  // Loads the current page again after a failure, keeping every filter.
+  function retryGames() {
+    setLoading(true);
+    setError(false);
+    setReloadKey((key) => key + 1);
+  }
 
   // Updates one filter and starts from page one.
   function updateFilter<K extends keyof Filters>(
@@ -108,13 +101,7 @@ function BrowseGames() {
 
   // Clears all filters.
   function resetFilters() {
-    setFilters({
-      search: "",
-      players: "",
-      category: "",
-      difficulty: "",
-      playtime: "",
-    });
+    setFilters(EMPTY_BROWSE_FILTERS);
 
     setPage(1);
     setGames([]);
@@ -194,35 +181,13 @@ function BrowseGames() {
             </div>
 
             {/* Category dropdown. */}
-            <div>
-              <label
-                htmlFor="category"
-                className="mb-2 block font-semibold"
-              >
-                Category
-              </label>
-
-              <select
-                id="category"
-                value={filters.category}
-                onChange={(event) =>
-                  updateFilter("category", event.target.value)
-                }
-                className="h-11 w-full rounded-lg border px-3"
-              >
-                <option value="">All categories</option>
-                <option value="Family">Family</option>
-                <option value="Strategy">Strategy</option>
-                <option value="Classic">Classic</option>
-                <option value="Deduction">Deduction</option>
-                <option value="War Game">War Game</option>
-                <option value="Word Game">Word Game</option>
-                <option value="Card Game">Card Game</option>
-                <option value="Children">Children</option>
-                <option value="Dexterity">Dexterity</option>
-                <option value="Party">Party</option>
-              </select>
-            </div>
+            <CategoryFilter
+              categories={categories}
+              value={filters.category}
+              onChange={(category) => updateFilter("category", category)}
+              onRetry={retryCategories}
+              className="h-11 w-full rounded-lg border px-3"
+            />
 
             {/* Difficulty dropdown. */}
             <div>
@@ -300,9 +265,17 @@ function BrowseGames() {
 
         {/* Error message. */}
         {error && (
-          <p className="mt-8 text-red-500" role="alert">
-            Unable to load games.
-          </p>
+          <div role="alert" className="mt-8 flex flex-wrap items-center gap-3">
+            <p className="text-destructive">Unable to load games.</p>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={retryGames}
+              className="rounded-lg"
+            >
+              Try again
+            </Button>
+          </div>
         )}
 
         {/* Empty results message. */}

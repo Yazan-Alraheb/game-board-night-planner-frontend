@@ -88,6 +88,19 @@ export interface GameNightUpdate {
   notes: string | null;
 }
 
+/**
+ * Backend schema: GameNightCreate (POST /api/game-nights). Extra keys are rejected with 422.
+ * `game_ids` must be games the host owns; `invitee_ids` must be accepted friends.
+ */
+export interface GameNightCreate {
+  name: string;
+  starts_at: string;
+  location: string;
+  notes: string | null;
+  game_ids: number[];
+  invitee_ids: number[];
+}
+
 /** Backend schema: GameNightInvite (POST /api/game-nights/{id}/members). Host only. */
 export interface GameNightInvite {
   user_id: number;

@@ -1,5 +1,6 @@
 import api from "@/api/client";
 import type {
+  GameNightCreate,
   GameNightAvailableGame,
   GameNightAvailableGamesResponse,
   GameNightDetailResponse,
@@ -24,6 +25,21 @@ export async function getGameNights(signal?: AbortSignal): Promise<GameNightResp
   }
 
   return response.data.game_nights;
+}
+
+/**
+ * POST /api/game-nights: create a night hosted by the current user. Returns the new night.
+ * Backend errors: 400 (inviting yourself), 403 (game not owned / invitee not a friend),
+ * 404 (game or invitee not found), 422 (invalid body).
+ */
+export async function createGameNight(body: GameNightCreate): Promise<GameNightResponse> {
+  const response = await api.post<GameNightDetailResponse>("/game-nights", body);
+
+  if (typeof response.data?.game_night?.id !== "number") {
+    throw new Error("Unexpected response format from POST /api/game-nights");
+  }
+
+  return response.data.game_night;
 }
 
 /**
