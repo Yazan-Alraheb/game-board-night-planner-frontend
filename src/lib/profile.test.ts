@@ -3,10 +3,11 @@
 import { describe, expect, test } from "bun:test";
 
 import {
-  PROFILE_CATEGORIES,
+  PLAYTIME_OPTIONS,
   DEFAULT_PREFERENCES,
   toggleCategory,
   getPlaytimeOption,
+  getProfileCategories,
   formatMemberSince,
 } from "@/lib/profile";
 
@@ -39,42 +40,76 @@ describe("Favorite categories", () => {
       .toEqual(["Adventure", "Party"]);
   });
 
-  test("includes all six profile categories", () => {
-    expect(PROFILE_CATEGORIES).toEqual([
-      "Strategy",
-      "Family",
-      "Party",
-      "Abstract",
-      "Cooperative",
-      "Deck Building",
-    ]);
-  });
+    test("uses categories from the game catalog", () => {
+    expect(
+        getProfileCategories(["Family", "Strategy"], [])
+    ).toEqual(["Family", "Strategy"]);
+    });
+
+    test("preserves previously saved categories", () => {
+    expect(
+        getProfileCategories(
+        ["Family", "Strategy"],
+        ["Adventure"]
+        )
+    ).toEqual(["Family", "Strategy", "Adventure"]);
+    });
+
+    test("does not duplicate categories", () => {
+    expect(
+        getProfileCategories(
+        ["Family", "Strategy"],
+        ["Strategy"]
+        )
+    ).toEqual(["Family", "Strategy"]);
+    });
+
+    test("preserves selections when the catalog is unavailable", () => {
+    expect(
+        getProfileCategories([], ["Strategy"])
+    ).toEqual(["Strategy"]);
+    });
+
+    test("handles an empty catalog and no selections", () => {
+    expect(getProfileCategories([], [])).toEqual([]);
+    });
+
 });
 
 describe("Preferred playtime", () => {
   test.each([1, 15, 25, 29])(
     "maps %p minutes to Quick",
     (minutes) => {
-      expect(getPlaytimeOption(minutes)).toBe(25);
+      expect(getPlaytimeOption(minutes)).toBe(29);
     }
   );
 
   test.each([30, 45, 60, 90])(
     "maps %p minutes to Medium",
     (minutes) => {
-      expect(getPlaytimeOption(minutes)).toBe(60);
+      expect(getPlaytimeOption(minutes)).toBe(90);
     }
   );
 
   test.each([91, 120, 180])(
     "maps %p minutes to Long",
     (minutes) => {
-      expect(getPlaytimeOption(minutes)).toBe(120);
+      expect(getPlaytimeOption(minutes)).toBe(180);
     }
   );
 
   test("handles no preferred playtime", () => {
     expect(getPlaytimeOption(null)).toBeNull();
+  });
+
+  test("preserves custom longer playtime preferences", () => {
+    expect(getPlaytimeOption(240)).toBe(240);
+  });
+
+  test("playtime options match their upper limits", () => {
+    expect(
+      PLAYTIME_OPTIONS.map((option) => option.value)
+    ).toEqual([29, 90, 180]);
   });
 });
 

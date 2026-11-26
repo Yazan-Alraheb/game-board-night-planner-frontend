@@ -4,7 +4,8 @@
 import { useEffect, useRef, useState, type SubmitEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
-
+import { getGameCategories } from "@/api/games";
+import { useLazyResource } from "@/hooks/useLazyResource";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -26,11 +27,11 @@ import {
 import type { PreferenceUpdateRequest } from "@/types/preference";
 
 import {
-  PROFILE_CATEGORIES,
   PLAYTIME_OPTIONS,
   DEFAULT_PREFERENCES,
   toggleCategory,
   getPlaytimeOption,
+  getProfileCategories,
   formatMemberSince,
 } from "@/lib/profile";
 
@@ -83,6 +84,8 @@ function ProfileEditor({ session }: { session: AuthResponse }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+  const [categoryResource, retryCategories] =
+    useLazyResource(getGameCategories, true);
 
   const saveController = useRef<AbortController | null>(null);
 
@@ -215,9 +218,14 @@ function ProfileEditor({ session }: { session: AuthResponse }) {
       // Save preferences separately.
       const updatedPreferences = await updatePreferences(
         userId,
-        draft.preferences,
+        {
+            ...draft.preferences,
+            preferred_playtime: getPlaytimeOption(
+            draft.preferences.preferred_playtime
+            ),
+        },
         controller.signal
-      );
+        );
 
       if (!currentSession()) return;
 
@@ -277,17 +285,29 @@ function ProfileEditor({ session }: { session: AuthResponse }) {
     );
   }
 
-  const categories = Array.from(
-    new Set([
-      ...PROFILE_CATEGORIES,
-      ...draft.preferences.favorite_categories,
-    ])
-  );
+  const catalogCategories =
+    categoryResource.status === "success"
+        ? categoryResource.data
+        : [];
+  const categories = getProfileCategories(
+    catalogCategories,
+    draft.preferences.favorite_categories
+    );
 
   const selectedPlaytime = getPlaytimeOption(
     draft.preferences.preferred_playtime
-  );
+    );
 
+  const playtimeOptions =
+    selectedPlaytime !== null && selectedPlaytime > 180
+        ? [
+            ...PLAYTIME_OPTIONS,
+            {
+            value: selectedPlaytime,
+            label: `Custom (${selectedPlaytime} min)`,
+            },
+        ]
+        : PLAYTIME_OPTIONS;
   return (
     <main className="min-h-screen bg-surface-warm px-4 py-10 sm:px-6 sm:py-12">
       <div className="mx-auto max-w-3xl">
@@ -422,6 +442,37 @@ function ProfileEditor({ session }: { session: AuthResponse }) {
               <legend className="mb-2 text-sm font-medium">
                 Favorite Categories
               </legend>
+              
+        {(categoryResource.status === "loading" ||
+        categoryResource.status === "idle") && (
+        <p role="status" className="text-sm text-muted-foreground">
+            Loading categories...
+        </p>
+        )}
+
+        {categoryResource.status === "error" && (
+        <div role="alert" className="flex flex-wrap items-center gap-3">
+            <p className="text-sm text-destructive">
+            Could not load game categories.
+            </p>
+
+            <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={retryCategories}
+            >
+            Try Again
+            </Button>
+        </div>
+        )}
+
+        {categoryResource.status === "success" &&
+        categories.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+            No categories are available yet.
+            </p>
+        )}
 
               <div className="flex flex-wrap gap-2">
                 {categories.map((category) => {
@@ -466,7 +517,7 @@ function ProfileEditor({ session }: { session: AuthResponse }) {
               </legend>
 
               <div className="space-y-3">
-                {PLAYTIME_OPTIONS.map((option) => {
+                {playtimeOptions.map((option) => {
                   const selected =
                     selectedPlaytime === option.value;
 

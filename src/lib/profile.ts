@@ -1,18 +1,9 @@
 import type { PreferenceUpdateRequest } from "@/types/preference";
 
-export const PROFILE_CATEGORIES = [
-  "Strategy",
-  "Family",
-  "Party",
-  "Abstract",
-  "Cooperative",
-  "Deck Building",
-] as const;
-
 export const PLAYTIME_OPTIONS = [
-  { value: 25, label: "Quick (< 30 min)" },
-  { value: 60, label: "Medium (30–90 min)" },
-  { value: 120, label: "Long (90+ min)" },
+  { value: 29, label: "Quick (< 30 min)" },
+  { value: 90, label: "Medium (30–90 min)" },
+  { value: 180, label: "Long (91–180 min)" },
 ] as const;
 
 // Default values for users without saved preferences
@@ -38,10 +29,19 @@ export function getPlaytimeOption(
   minutes: number | null
 ): number | null {
   if (minutes === null) return null;
-  if (minutes < 30) return 25;
-  if (minutes <= 90) return 60;
+  if (minutes < 30) return 29;
+  if (minutes <= 90) return 90;
+  if (minutes <= 180) return 180;
 
-  return 120;
+  return minutes;
+}
+
+// Combine catalog categories with previously saved categories
+export function getProfileCategories(
+  catalog: string[],
+  selected: string[]
+): string[] {
+  return Array.from(new Set([...catalog, ...selected]));
 }
 
 // Format account creation date

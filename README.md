@@ -132,17 +132,25 @@ Authenticated users can access their profile by clicking their name in the navig
 
 Usernames remain read-only.
 
+
 ### Game Preferences
 
 Users can select multiple favorite game categories and a preferred playtime.
 
+Favorite categories are loaded dynamically from the game catalog using the same category loading logic as Find a Game.
+
 Available playtime options:
 
-- Quick: Under 30 minutes (stored as 25 minutes).
-- Medium: 30–90 minutes (stored as 60 minutes).
-- Long: Over 90 minutes (stored as 120 minutes).
+- Quick: Under 30 minutes (stored as 29 minutes).
+- Medium: 30–90 minutes (stored as 90 minutes).
+- Long: 91–180 minutes (stored as 180 minutes).
 
-Previously saved difficulty and disliked category preferences are preserved when updating the profile.
+Playtime presets use the upper limit of each range to avoid penalizing games within the selected range in recommendation scoring.
+
+Existing custom preferences over 180 minutes are preserved.
+
+Previously saved favorite categories, difficulty preferences, and disliked categories are preserved unless their editable selections are changed.
+
 
 ### Backend Integration
 
