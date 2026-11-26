@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { getApiErrorInfo, type ApiErrorInfo } from "@/api/errors";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import type { ApiErrorInfo } from "@/api/errors";
 import {
   addGameToGameNight,
   deleteGameNight,
@@ -16,6 +16,14 @@ import {
 } from "@/api/game-nights";
 import { useAuth } from "@/auth/useAuth";
 import { setGameSelected } from "@/lib/game-nights/details";
+import {
+  NightResource,
+  nightResourceScope,
+  readNightResource,
+  type NightFetcher,
+  type Resource,
+  type UpdateRefetch,
+} from "@/lib/game-nights/night-resource";
 import { applyRsvpStatus } from "@/lib/game-nights/overview";
 import type {
   GameNightAvailableGame,
@@ -26,102 +34,42 @@ import type {
 } from "@/types/game-night";
 import type { PublicUser } from "@/types/friend";
 
-export type Resource<T> =
-  | { status: "loading" }
-  | { status: "error"; error: ApiErrorInfo }
-  | { status: "success"; data: T };
-
-const LOADING = { status: "loading" } as const;
+export type { Resource };
 
 /**
- * One resource of the night, loaded from `fetcher(id)`.
- * - The state remembers which id it belongs to, so a new id never shows the old night's data.
- * - Only the latest request may write, so an older response can't overwrite a newer one.
- * - Requests are aborted when the id changes or the page unmounts.
+ * One resource of the night, loaded from `fetcher(nightId)` for the signed-in user.
+ * The request bookkeeping lives in NightResource (see lib/game-nights/night-resource.ts):
+ * - Data is scoped to user + night, so another user's or night's data is never shown.
+ * - Only the newest request may write; a confirmed local change counts as newer.
+ * - Requests are aborted when the user or night changes, on sign-out and on unmount.
  */
 function useNightResource<T>(
-  id: number | null,
-  enabled: boolean,
-  fetcher: (id: number, signal?: AbortSignal) => Promise<T>,
+  scope: string | null,
+  nightId: number | null,
+  fetcher: NightFetcher<T>,
 ) {
-  const [state, setState] = useState<{ forId: number | null; value: Resource<T> }>({
-    forId: null,
-    value: LOADING,
-  });
-  const generation = useRef(0);
-  const request = useRef(0);
-  const controller = useRef<AbortController | null>(null);
-
-  /**
-   * Fetches and stores the result; only the latest request may write.
-   * With `quiet`, a failure keeps the data already shown, except when the night is gone.
-   */
-  const fetchLatest = useCallback(
-    async (quiet: boolean) => {
-      if (id === null) return;
-      const current = generation.current;
-      const requestId = ++request.current;
-      const isLatest = () => current === generation.current && requestId === request.current;
-
-      try {
-        const data = await fetcher(id, controller.current?.signal);
-        if (isLatest()) setState({ forId: id, value: { status: "success", data } });
-      } catch (error: unknown) {
-        const info = getApiErrorInfo(error);
-        if (!isLatest() || info.kind === "canceled") return;
-        if (quiet && info.kind !== "not_found") return;
-        setState({ forId: id, value: { status: "error", error: info } });
-      }
-    },
-    [id, fetcher],
-  );
-
-  /** Reloads. Without `quiet` the loading state is shown meanwhile (a Retry button). */
-  const load = useCallback(
-    async (quiet = false) => {
-      if (id === null) return;
-      if (!quiet) setState({ forId: id, value: LOADING });
-      await fetchLatest(quiet);
-    },
-    [id, fetchLatest],
-  );
+  // The fetchers are module-level API functions, so one instance per mounted hook is enough.
+  const [resource] = useState(() => new NightResource(fetcher));
+  const snapshot = useSyncExternalStore(resource.subscribe, resource.getSnapshot, resource.getSnapshot);
 
   useEffect(() => {
-    if (!enabled || id === null) return;
-    const abort = new AbortController();
-    const generationRef = generation;
-    generationRef.current++;
-    controller.current = abort;
-    // A new id already reads as loading (state.forId differs), so no state reset is needed here.
-    void fetchLatest(false);
-    return () => {
-      generationRef.current++;
-      abort.abort();
-    };
-  }, [enabled, id, fetchLatest]);
+    if (scope === null || nightId === null) return;
+    resource.open(scope, nightId);
+    return () => resource.close();
+  }, [resource, scope, nightId]);
 
-  /** Applies a server-confirmed change to loaded data. */
+  /** Reloads. Without `quiet` the loading state is shown meanwhile (a Retry button). */
+  const load = useCallback((quiet = false) => resource.load(scope, quiet), [resource, scope]);
+
+  /** Applies a server-confirmed change to loaded data; older GETs can no longer overwrite it. */
   const update = useCallback(
-    (change: (data: T) => T) => {
-      setState((prev) =>
-        prev.forId === id && prev.value.status === "success"
-          ? { forId: id, value: { status: "success", data: change(prev.value.data) } }
-          : prev,
-      );
-    },
-    [id],
+    (change: (data: T) => T, refetch?: UpdateRefetch) => resource.update(scope, change, refetch),
+    [resource, scope],
   );
 
-  const fail = useCallback(
-    (error: ApiErrorInfo) => {
-      request.current++; // Drop any response still on its way.
-      setState({ forId: id, value: { status: "error", error } });
-    },
-    [id],
-  );
+  const fail = useCallback((error: ApiErrorInfo) => resource.fail(scope, error), [resource, scope]);
 
-  const value: Resource<T> = state.forId === id ? state.value : LOADING;
-  return { value, load, update, fail };
+  return { value: readNightResource(snapshot, scope), load, update, fail };
 }
 
 export type MutationResult<T> = { ok: true; value: T } | { ok: false; error: unknown };
@@ -132,29 +80,30 @@ export type MutationResult<T> = { ok: true; value: T } | { ok: false; error: unk
  * The three GETs run in parallel and fail independently, so the page stays usable when
  * members or games can't be loaded. Each action runs at most once at a time per kind;
  * a second call while one is in flight returns null. Results for a night the user has
- * navigated away from also return null.
+ * navigated away from, or that finish after the signed-in user changed, also return null.
  */
 export function useGameNightDetails(id: number | null) {
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
-  const enabled = userId !== null;
+  // User + night: data and action results only ever apply to the scope they were started in.
+  const scope = nightResourceScope(userId, id);
 
-  const event = useNightResource(id, enabled, getGameNight);
-  const members = useNightResource(id, enabled, getGameNightMembers);
-  const games = useNightResource(id, enabled, getGameNightGames);
+  const event = useNightResource(scope, id, getGameNight);
+  const members = useNightResource(scope, id, getGameNightMembers);
+  const games = useNightResource(scope, id, getGameNightGames);
 
-  // The id the page currently shows; actions that finish for another id are ignored.
-  const activeId = useRef<number | null>(null);
+  // The scope the page currently shows; actions that finish for another user or night are ignored.
+  const activeScope = useRef<string | null>(null);
   const inFlight = useRef(new Set<string>());
 
   useEffect(() => {
-    activeId.current = id;
+    activeScope.current = scope;
     const flights = inFlight.current;
     return () => {
-      activeId.current = null;
+      activeScope.current = null;
       flights.clear();
     };
-  }, [id, userId]);
+  }, [scope]);
 
   const reloadAll = useCallback(() => {
     void event.load();
@@ -177,24 +126,26 @@ export function useGameNightDetails(id: number | null) {
   const run = useCallback(
     async <T>(key: string, action: (nightId: number) => Promise<T>): Promise<MutationResult<T> | null> => {
       const nightId = id;
-      if (nightId === null || inFlight.current.has(key)) return null;
+      const runScope = scope;
+      if (nightId === null || runScope === null || inFlight.current.has(key)) return null;
       inFlight.current.add(key);
       try {
         const value = await action(nightId);
-        return activeId.current === nightId ? { ok: true, value } : null;
+        return activeScope.current === runScope ? { ok: true, value } : null;
       } catch (error: unknown) {
-        return activeId.current === nightId ? { ok: false, error } : null;
+        return activeScope.current === runScope ? { ok: false, error } : null;
       } finally {
-        if (activeId.current === nightId) inFlight.current.delete(key);
+        if (activeScope.current === runScope) inFlight.current.delete(key);
       }
     },
-    [id],
+    [id, scope],
   );
 
   const save = useCallback(
     async (payload: GameNightUpdate) => {
       const result = await run("save", (nightId) => updateGameNight(nightId, payload));
-      if (result?.ok) event.update(() => result.value);
+      // The PUT returns the complete night, so there is nothing left to re-check.
+      if (result?.ok) event.update(() => result.value, "never");
       return result;
     },
     [run, event],
@@ -213,9 +164,9 @@ export function useGameNightDetails(id: number | null) {
       if (userId === null) return null;
       const result = await run("rsvp", (nightId) => updateRsvp(nightId, answer));
       if (result?.ok) {
-        members.update((list) => applyRsvpStatus(list, userId, result.value.status));
         // An RSVP change can unselect games only this user owned; re-check both quietly.
-        void members.load(true);
+        // "always" makes the update itself re-fetch members, so no second members GET is needed.
+        members.update((list) => applyRsvpStatus(list, userId, result.value.status), "always");
         void games.load(true);
       }
       return result;
