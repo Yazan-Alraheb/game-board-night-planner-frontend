@@ -15,6 +15,7 @@ export const ROUTES = {
   createGameNight: "/game-nights/new", // PLACEHOLDER
   register: "/register",
   friends: "/friends",
+  profile: "/profile",
 } as const;
 
 /** /game-nights/{id}: one game night's details page. */
