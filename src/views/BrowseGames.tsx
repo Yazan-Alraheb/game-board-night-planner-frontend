@@ -15,20 +15,13 @@ interface Filters {
   playtime: string;
 }
 
-// Number of games requested for each page.
 const GAMES_PER_PAGE = 8;
 
 function BrowseGames() {
-  // Games received from the backend.
   const [games, setGames] = useState<Game[]>([]);
-
-  // Total matching games, used to calculate pagination.
   const [total, setTotal] = useState(0);
-
-  // Current page number.
   const [page, setPage] = useState(1);
 
-  // Filter values controlled by the inputs.
   const [filters, setFilters] = useState<Filters>({
     search: "",
     players: "",
@@ -37,13 +30,10 @@ function BrowseGames() {
     playtime: "",
   });
 
-  // Initial loading state.
   const [loading, setLoading] = useState(true);
-
-  // API error state.
   const [error, setError] = useState(false);
 
-  // Loads games when filters or page change.
+  // Loads games whenever the page or filters change.
   useEffect(() => {
     const controller = new AbortController();
 
@@ -66,20 +56,19 @@ function BrowseGames() {
         controller.signal,
       )
         .then((data) => {
-          // Calculate the last valid page.
           const lastPage = Math.max(
             1,
             Math.ceil(data.total / GAMES_PER_PAGE),
           );
 
-          // If the current page no longer exists, move to the last page.
+          // If filtering reduces the number of pages,
+          // move to the last valid page.
           if (page > lastPage) {
             setTotal(data.total);
             setPage(lastPage);
             return;
           }
 
-          // Save the new games and total count.
           setGames(data.games);
           setTotal(data.total);
           setLoading(false);
@@ -101,7 +90,7 @@ function BrowseGames() {
     };
   }, [filters, page]);
 
-  // Updates one filter and immediately prepares the page for new results.
+  // Updates one filter and starts from page one.
   function updateFilter<K extends keyof Filters>(
     key: K,
     value: Filters[K],
@@ -111,10 +100,7 @@ function BrowseGames() {
       [key]: value,
     }));
 
-    // New filters should always begin at page one.
     setPage(1);
-
-    // Remove old results immediately instead of displaying stale games.
     setGames([]);
     setLoading(true);
     setError(false);
@@ -136,7 +122,6 @@ function BrowseGames() {
     setError(false);
   }
 
-  // Calculates the total number of pages.
   const totalPages = Math.max(
     1,
     Math.ceil(total / GAMES_PER_PAGE),
@@ -155,7 +140,7 @@ function BrowseGames() {
 
         {/* Search and filter controls. */}
         <div className="mt-8 rounded-2xl bg-white p-5">
-          {/* Search is separated and spans the full filter box. */}
+          {/* Search bar. */}
           <div>
             <label
               htmlFor="game-search"
@@ -176,8 +161,9 @@ function BrowseGames() {
             />
           </div>
 
-          {/* Additional filters. */}
+          {/* Dropdown filters. */}
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Players dropdown. */}
             <div>
               <label
                 htmlFor="players"
@@ -186,19 +172,28 @@ function BrowseGames() {
                 Players
               </label>
 
-              <input
+              <select
                 id="players"
-                type="number"
-                min="1"
                 value={filters.players}
                 onChange={(event) =>
                   updateFilter("players", event.target.value)
                 }
-                placeholder="Example: 4"
                 className="h-11 w-full rounded-lg border px-3"
-              />
+              >
+                <option value="">Any number of players</option>
+
+                {[1, 2, 3, 4, 5, 6, 8, 10, 16].map(
+                  (number) => (
+                    <option key={number} value={number}>
+                      {number} player
+                      {number !== 1 ? "s" : ""}
+                    </option>
+                  ),
+                )}
+              </select>
             </div>
 
+            {/* Category dropdown. */}
             <div>
               <label
                 htmlFor="category"
@@ -207,18 +202,29 @@ function BrowseGames() {
                 Category
               </label>
 
-              <input
+              <select
                 id="category"
-                type="text"
                 value={filters.category}
                 onChange={(event) =>
                   updateFilter("category", event.target.value)
                 }
-                placeholder="Example: Strategy"
                 className="h-11 w-full rounded-lg border px-3"
-              />
+              >
+                <option value="">All categories</option>
+                <option value="Family">Family</option>
+                <option value="Strategy">Strategy</option>
+                <option value="Classic">Classic</option>
+                <option value="Deduction">Deduction</option>
+                <option value="War Game">War Game</option>
+                <option value="Word Game">Word Game</option>
+                <option value="Card Game">Card Game</option>
+                <option value="Children">Children</option>
+                <option value="Dexterity">Dexterity</option>
+                <option value="Party">Party</option>
+              </select>
             </div>
 
+            {/* Difficulty dropdown. */}
             <div>
               <label
                 htmlFor="difficulty"
@@ -245,6 +251,7 @@ function BrowseGames() {
               </select>
             </div>
 
+            {/* Maximum playtime dropdown. */}
             <div>
               <label
                 htmlFor="playtime"
@@ -253,20 +260,28 @@ function BrowseGames() {
                 Maximum playtime
               </label>
 
-              <input
+              <select
                 id="playtime"
-                type="number"
-                min="1"
                 value={filters.playtime}
                 onChange={(event) =>
                   updateFilter("playtime", event.target.value)
                 }
-                placeholder="Minutes"
                 className="h-11 w-full rounded-lg border px-3"
-              />
+              >
+                <option value="">Any playtime</option>
+                <option value="15">15 minutes or less</option>
+                <option value="20">20 minutes or less</option>
+                <option value="30">30 minutes or less</option>
+                <option value="45">45 minutes or less</option>
+                <option value="60">60 minutes or less</option>
+                <option value="120">
+                  120 minutes or less
+                </option>
+              </select>
             </div>
           </div>
 
+          {/* Reset button. */}
           <button
             type="button"
             onClick={resetFilters}
@@ -276,21 +291,21 @@ function BrowseGames() {
           </button>
         </div>
 
-        {/* Loading message appears while new results are loading. */}
+        {/* Loading message. */}
         {loading && (
           <p className="mt-8" role="status">
             Loading games...
           </p>
         )}
 
-        {/* Error message appears if the API request fails. */}
+        {/* Error message. */}
         {error && (
           <p className="mt-8 text-red-500" role="alert">
             Unable to load games.
           </p>
         )}
 
-        {/* Message shown when no games match the filters. */}
+        {/* Empty results message. */}
         {!loading && !error && games.length === 0 && (
           <p className="mt-8">
             No games found.
