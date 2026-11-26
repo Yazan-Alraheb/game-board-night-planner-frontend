@@ -6,10 +6,10 @@ import {
   AvatarImage,
 } from "@/components/ui/avatar";
 import { getInitials, placeholderColor } from "@/lib/format";
-import type { UserSummary } from "@/types/game";
+import type { PublicUser } from "@/types/friend";
 
 interface AttendeeAvatarsProps {
-  attendees: UserSummary[];
+  attendees: readonly PublicUser[];
   max?: number;
 }
 
@@ -25,7 +25,7 @@ function AttendeeAvatars({ attendees, max = 4 }: AttendeeAvatarsProps) {
         <Avatar key={person.id} size="lg">
           {person.avatar_url && <AvatarImage src={person.avatar_url} alt="" />}
           <AvatarFallback className={`text-xs font-semibold ${placeholderColor(person.id)}`}>
-            {getInitials(person.display_name)}
+            {getInitials(person.name)}
           </AvatarFallback>
         </Avatar>
       ))}

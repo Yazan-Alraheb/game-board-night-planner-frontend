@@ -74,6 +74,93 @@ Protected routes require login, and users return to their previous page after su
 
 For production, HttpOnly cookie authentication with CSRF protection is recommended.
 
+### Registration
+
+Users register with a full name, unique username, email, and password.
+
+Username requirements:
+
+- Between 3 and 32 characters.
+- Letters, numbers, and underscores only.
+- Case-insensitive and stored in lowercase.
+- Must be unique.
+
+### Login
+
+Users can log in using either their username or email.
+
+Protected routes require login, and users return to their previous page after successfully logging in.
+
+Logging out clears the authentication session. Login form values are reset after successful authentication.
+
+Sessions created before the username update require users to log in again.
+
+For production, HttpOnly cookie authentication with CSRF protection is recommended.
+
+
+## Friends and Username Search
+
+Users can search for other members by display name or username.
+
+- Partial name and username searches are supported.
+- Searches are case-insensitive.
+- Use @username for an exact username match.
+
+Usernames are displayed in search results, incoming requests, outgoing requests, and the friends list.
+
+## Username Backend Compatibility
+
+This frontend requires the backend username implementation.
+
+Existing PostgreSQL databases must apply the username migration documented in the backend repository before using this feature.
+
+Existing accounts receive generated usernames and retain their original email and password.
+
+
+## Profile & Preferences
+
+Authenticated users can access their profile by clicking their name in the navigation bar or visiting `/profile`.
+
+### Profile Features
+
+- Edit display name and biography.
+- Update or remove the profile picture using an image URL.
+- View the account username and membership date.
+- Save profile changes to the backend.
+- Automatically synchronize updated profile information with the authentication session.
+- Sign out directly from the profile page.
+
+Usernames remain read-only.
+
+
+### Game Preferences
+
+Users can select multiple favorite game categories and a preferred playtime.
+
+Favorite categories are loaded dynamically from the game catalog using the same category loading logic as Find a Game.
+
+Available playtime options:
+
+- Quick: Under 30 minutes (stored as 29 minutes).
+- Medium: 30–90 minutes (stored as 90 minutes).
+- Long: 91–180 minutes (stored as 180 minutes).
+
+Playtime presets use the upper limit of each range to avoid penalizing games within the selected range in recommendation scoring.
+
+Existing custom preferences over 180 minutes are preserved.
+
+Previously saved favorite categories, difficulty preferences, and disliked categories are preserved unless their editable selections are changed.
+
+
+### Backend Integration
+
+The profile page uses the following authenticated API endpoints:
+
+- GET /api/users/{id}
+- PUT /api/users/{id}
+- GET /api/users/{id}/preferences
+- PUT /api/users/{id}/preferences
+
 ## Project Structure
 
 - `src/app/` - Next.js pages and layouts
