@@ -1,5 +1,5 @@
-import ComingSoon from "@/views/ComingSoon";
+import Messages from "@/views/Messages";
 
-export default function Page() {
-  return <ComingSoon title="Messages" />;
+export default function MessagesPage() {
+  return <Messages />;
 }
