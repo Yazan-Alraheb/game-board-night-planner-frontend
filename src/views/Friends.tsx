@@ -210,6 +210,10 @@ async function handleRemoveFriend(friend: PublicUser) {
                       {friend.name}
                     </h3>
 
+                    <p className="break-words text-sm font-medium text-brand-strong">
+                      @{friend.username}
+                    </p>
+
                     <p className="break-words text-sm text-muted-foreground">
                       {friend.bio || "Game Night member"}
                     </p>

@@ -204,9 +204,15 @@ export default function IncomingRequests({
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold">
+                  <h3 className="break-words font-semibold">
                     {name}
                   </h3>
+
+                  {user?.username && (
+                    <p className="break-words text-sm font-medium text-brand-strong">
+                      @{user.username}
+                    </p>
+                  )}
 
                   <p className="text-sm text-muted-foreground">
                     Sent you a friend request
