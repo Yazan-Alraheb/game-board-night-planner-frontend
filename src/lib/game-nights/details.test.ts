@@ -27,6 +27,7 @@ import {
   validateEditForm,
   type EditFormValues,
 } from "@/lib/game-nights/details";
+import type { PublicUser } from "@/types/friend";
 import type { Game } from "@/types/game";
 import type {
   GameNightAvailableGame,
@@ -49,7 +50,13 @@ const GUEST = 2;
 const NOW = new Date("2026-11-25T12:00:00Z").getTime();
 const HOUR = 60 * 60 * 1000;
 
-const user = (id: number, name = `User ${id}`) => ({ id, name, bio: null, avatar_url: null });
+const user = (id: number, name = `User ${id}`): PublicUser => ({
+  id,
+  name,
+  username: `user${id}`,
+  bio: null,
+  avatar_url: null,
+});
 const member = (id: number, status: GameNightMemberStatus, name?: string): GameNightMember => ({
   user: user(id, name),
   status,

@@ -39,16 +39,28 @@ export function MemberAvatar({ user, className }: { user: PublicUser; className?
   );
 }
 
+/** Display name with @username below, as on the Friends pages. Long names wrap instead of overflowing. */
+export function UserName({ user, isMe = false }: { user: PublicUser; isMe?: boolean }) {
+  return (
+    <span className="min-w-0 flex-1">
+      <span className="block font-medium break-words">
+        {user.name}
+        {isMe && <span className="font-normal text-muted-foreground"> (you)</span>}
+      </span>
+      {user.username && (
+        <span className="block text-sm font-medium break-all text-brand-strong">@{user.username}</span>
+      )}
+    </span>
+  );
+}
+
 function MemberRow({ member, kind, isMe }: { member: GameNightMember; kind: keyof typeof STATUS; isMe: boolean }) {
   const style = STATUS[kind];
   const Icon = style.icon;
   return (
     <li className="flex items-center gap-3 py-2">
       <MemberAvatar user={member.user} />
-      <span className="min-w-0 flex-1 font-medium break-words">
-        {member.user.name}
-        {isMe && <span className="font-normal text-muted-foreground"> (you)</span>}
-      </span>
+      <UserName user={member.user} isMe={isMe} />
       <span
         className={cn(
           "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",

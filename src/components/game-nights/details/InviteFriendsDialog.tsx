@@ -6,7 +6,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { Check, Loader2, UserPlus, X } from "lucide-react";
 import { getFriends } from "@/api/friends";
 import { getApiErrorInfo } from "@/api/errors";
-import { MemberAvatar, RetryButton } from "@/components/game-nights/details/AttendeesSection";
+import { MemberAvatar, RetryButton, UserName } from "@/components/game-nights/details/AttendeesSection";
 import { ROUTES } from "@/lib/routes";
 import type { PublicUser } from "@/types/friend";
 
@@ -185,7 +185,7 @@ function FriendList({
             <li key={friend.id} className="py-2">
               <div className="flex items-center gap-3">
                 <MemberAvatar user={friend} />
-                <span className="min-w-0 flex-1 font-medium break-words">{friend.name}</span>
+                <UserName user={friend} />
                 {done ? (
                   <span className="inline-flex items-center gap-1 text-sm font-semibold text-brand-strong">
                     <Check className="size-4" aria-hidden="true" />

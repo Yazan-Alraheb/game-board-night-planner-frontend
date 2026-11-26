@@ -1,8 +1,10 @@
-import { MapPin } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import AttendeeAvatars from "@/components/home/AttendeeAvatars";
 import { formatEventDate } from "@/lib/format";
+import { gameNightPath } from "@/lib/routes";
 import { summarizeAttendees, type GameNightRole } from "@/lib/home/upcoming-game-nights";
 import { cn } from "@/lib/utils";
 import type { GameNightMember, GameNightResponse } from "@/types/game-night";
@@ -39,7 +41,10 @@ function AttendeeRow({ members }: { members: readonly GameNightMember[] | null }
   );
 }
 
-/** Presentational card for one game night. Not a link: there is no detail page yet. */
+/**
+ * Card for one game night, with a "View details" link to /game-nights/{id}.
+ * A separate link rather than a whole-card link, like the overview cards.
+ */
 function GameNightCard({ gameNight, role, members }: GameNightCardProps) {
   const { name, starts_at, location } = gameNight;
 
@@ -70,6 +75,15 @@ function GameNightCard({ gameNight, role, members }: GameNightCardProps) {
         <span className="sr-only">Location: </span>
         <span className="min-w-0 break-words">{location}</span>
       </p>
+
+      <Link
+        href={gameNightPath(gameNight.id)}
+        className="mt-4 -ml-2 inline-flex min-h-11 items-center gap-1.5 self-start rounded-lg px-2 font-semibold text-brand-strong hover:bg-brand-soft focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+      >
+        View details
+        <span className="sr-only"> for {name}</span>
+        <ArrowRight className="size-4" aria-hidden="true" />
+      </Link>
     </Card>
   );
 }
