@@ -16,3 +16,8 @@ export const ROUTES = {
   register: "/register",
   friends: "/friends",
 } as const;
+
+/** /game-nights/{id}: one game night's details page. */
+export function gameNightPath(id: number): string {
+  return `${ROUTES.gameNights}/${id}`;
+}
