@@ -6,8 +6,8 @@ export const ROUTES = {
   login: "/login",
   findGame: "/find-a-game",
   recommendations: "/recommendations",
-  browse: "/browse", // PLACEHOLDER
-  collection: "/collection", // PLACEHOLDER
+  browse: "/browse",
+  collection: "/collection",
   messages: "/messages",
   gameNights: "/game-nights",
   createGameNight: "/game-nights/new",
