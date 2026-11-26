@@ -1,13 +1,18 @@
 "use client";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import axios from "axios";
 import { CalendarDays, CalendarPlus, Check, Dices, MapPin, Sparkles, Users } from "lucide-react";
-import api from "@/api/client";
-import { Button } from "@/components/ui/button";
+import { getCollection } from "@/api/collection";
 import { getFriends } from "@/api/friends";
+import { createGameNight } from "@/api/game-nights";
+import { getSession } from "@/auth/session";
 import { useAuth } from "@/auth/useAuth";
+import PickerState from "@/components/game-nights/PickerState";
+import { Button } from "@/components/ui/button";
+import { useUserResource } from "@/hooks/useUserResource";
+import { buildCreateBody, EMPTY_CREATE_FORM, submitGameNight, type CreateFormValues } from "@/lib/game-nights/create";
+import { parseDateTimeLocalValue } from "@/lib/game-nights/details";
 import { formatEventDate, getInitials, placeholderColor } from "@/lib/format";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
@@ -15,6 +20,16 @@ import type { Game } from "@/types/game";
 import type { PublicUser } from "@/types/friend";
 
 const toggleId = (ids: number[], id: number) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]);
+
+/** The host can only pick games they own (the backend rejects anything else). */
+async function loadOwnedGames(userId: number, signal: AbortSignal): Promise<Game[]> {
+  const entries = await getCollection(userId, "owned", signal);
+  return entries.filter((entry) => entry.status === "owned").map((entry) => entry.game);
+}
+
+function loadFriends(_userId: number, signal: AbortSignal): Promise<PublicUser[]> {
+  return getFriends(signal);
+}
 
 function FormSection({ step, title, children }: { step: string; title: string; children: ReactNode }) {
   return (
@@ -54,46 +69,75 @@ function Avatar({ person, className }: { person: PublicUser; className?: string 
 }
 
 export default function CreateGameNight() {
-  const router = useRouter();
   const { session } = useAuth();
-  const userId = session?.user.id;
-  const [form, setForm] = useState({ name: "", startsAt: "", location: "", notes: "" });
+  // A new form per user, so one account's draft and selections never carry over to the next.
+  return <CreateGameNightForm key={session?.user.id ?? "signed-out"} />;
+}
+
+function CreateGameNightForm() {
+  const router = useRouter();
+  const [form, setForm] = useState<CreateFormValues>(EMPTY_CREATE_FORM);
   const [gameIds, setGameIds] = useState<number[]>([]);
   const [inviteeIds, setInviteeIds] = useState<number[]>([]);
-  const [games, setGames] = useState<Game[]>([]);
-  const [friends, setFriends] = useState<PublicUser[]>([]);
+  const [gamesResource, retryGames] = useUserResource(loadOwnedGames);
+  const [friendsResource, retryFriends] = useUserResource(loadFriends);
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState(false);
   const [error, setError] = useState("");
 
+  const submittingRef = useRef(false);
+  const mountedRef = useRef(true);
   useEffect(() => {
-    if (userId === undefined) return;
-    api
-      .get<{ games: { game: Game }[] }>(`/users/${userId}/collection`, { params: { status: "owned" } })
-      .then((res) => setGames(res.data.games.map((entry) => entry.game)))
-      .catch(() => {});
-  }, [userId]);
-
-  useEffect(() => {
-    getFriends().then(setFriends).catch(() => {});
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
-  const set = (key: keyof typeof form) => (e: { target: { value: string } }) => setForm({ ...form, [key]: e.target.value });
-  const date = new Date(form.startsAt);
+  const games = gamesResource.status === "success" ? gamesResource.data : [];
+  const friends = friendsResource.status === "success" ? friendsResource.data : [];
+
+  const set = (key: keyof CreateFormValues) => (e: { target: { value: string } }) => setForm({ ...form, [key]: e.target.value });
+  const date = parseDateTimeLocalValue(form.startsAt);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (submittingRef.current) return;
+
+    const built = buildCreateBody(
+      form,
+      gameIds,
+      inviteeIds,
+      new Set(games.map((game) => game.id)),
+      new Set(friends.map((friend) => friend.id)),
+    );
+    if ("error" in built) {
+      setError(built.error);
+      return;
+    }
+
+    // The response only counts for the page and the session that sent the request.
+    const token = getSession()?.access_token;
+    submittingRef.current = true;
     setSubmitting(true);
     setError("");
-    try {
-      await api.post("/game-nights", { name: form.name.trim(), starts_at: date.toISOString(), location: form.location.trim(), notes: form.notes.trim() || null, game_ids: gameIds, invitee_ids: inviteeIds });
+
+    const outcome = await submitGameNight(built.body, {
+      create: createGameNight,
+      navigate: (path) => router.push(path),
+      isCurrent: () => mountedRef.current && token !== undefined && getSession()?.access_token === token,
+    });
+
+    if (outcome.status === "created") {
+      // Stay disabled while the details page opens, so the night can't be created twice.
       setCreated(true);
-      setTimeout(() => router.push(ROUTES.home), 1500);
-    } catch (err) {
-      const detail = axios.isAxiosError(err) ? err.response?.data?.detail : null;
-      setError(typeof detail === "string" ? detail : "Unable to create game night. Please try again.");
-      setSubmitting(false);
+      return;
     }
+
+    // Error, or a stale result (left the page / session changed): allow another try.
+    submittingRef.current = false;
+    setSubmitting(false);
+    if (outcome.status === "error") setError(outcome.message);
   }
 
   const picked = games.filter((g) => gameIds.includes(g.id));
@@ -105,7 +149,7 @@ export default function CreateGameNight() {
       {created && (
         <p role="status" className="fixed right-6 bottom-6 z-50 flex items-center gap-2 rounded-xl bg-brand-strong px-5 py-3 font-semibold text-white shadow-lg">
           <Check className="size-5" aria-hidden="true" />
-          Game night created!
+          Game night created! Opening it…
         </p>
       )}
       <section className="bg-brand px-4 py-12 text-brand-foreground">
@@ -131,46 +175,63 @@ export default function CreateGameNight() {
             </FormSection>
 
             <FormSection step="02" title="From your collection">
-              {games.length === 0 ? (
-                <p className="rounded-2xl border-2 border-dashed p-6 text-center text-sm text-muted-foreground">
-                  No games in your collection yet.{" "}
-                  <Link href={ROUTES.collection} className="font-semibold text-brand-strong hover:underline">Add some</Link>
-                </p>
-              ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {games.map((g) => {
-                    const on = gameIds.includes(g.id);
-                    return (
-                      <button key={g.id} type="button" aria-pressed={on} onClick={() => setGameIds(toggleId(gameIds, g.id))} className={cn("relative overflow-hidden rounded-2xl border-2 text-left", on && "border-brand")}>
-                        <GameArt game={g} className="aspect-square w-full" />
-                        <p className="truncate p-3 text-sm font-semibold">{g.name}<span className="block text-xs font-normal text-muted-foreground">{g.minimum_players}–{g.maximum_players} players · {g.playtime} min</span></p>
-                        {on && <Check className="absolute top-2 right-2 size-7 rounded-full bg-brand p-1.5 text-white" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+              <PickerState
+                resource={gamesResource}
+                noun="your games"
+                onRetry={retryGames}
+                empty={
+                  <>
+                    No games in your collection yet.{" "}
+                    <Link href={ROUTES.browse} className="font-semibold text-brand-strong hover:underline">Browse games</Link>
+                  </>
+                }
+              >
+                {(items) => (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {items.map((g) => {
+                      const on = gameIds.includes(g.id);
+                      return (
+                        <button key={g.id} type="button" aria-pressed={on} onClick={() => setGameIds(toggleId(gameIds, g.id))} className={cn("relative overflow-hidden rounded-2xl border-2 text-left", on && "border-brand")}>
+                          <GameArt game={g} className="aspect-square w-full" />
+                          <p className="truncate p-3 text-sm font-semibold">{g.name}<span className="block text-xs font-normal text-muted-foreground">{g.minimum_players}–{g.maximum_players} players · {g.playtime} min</span></p>
+                          {on && <Check className="absolute top-2 right-2 size-7 rounded-full bg-brand p-1.5 text-white" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </PickerState>
             </FormSection>
 
             <FormSection step="03" title="Your crew">
-              {friends.length === 0 ? (
-                <p className="rounded-2xl border-2 border-dashed p-6 text-center text-sm text-muted-foreground">No friends to invite yet.</p>
-              ) : (
-                <div className="grid grid-cols-3 gap-4 sm:grid-cols-5">
-                  {friends.map((f) => {
-                    const on = inviteeIds.includes(f.id);
-                    return (
-                      <button key={f.id} type="button" aria-pressed={on} onClick={() => setInviteeIds(toggleId(inviteeIds, f.id))} className="flex flex-col items-center gap-2 text-sm font-medium">
-                        <span className="relative">
-                          <Avatar person={f} className={cn("size-16 text-lg", on && "ring-4 ring-brand")} />
-                          {on && <Check className="absolute -right-1 -bottom-1 size-6 rounded-full bg-brand p-1 text-white" />}
-                        </span>
-                        <span className={cn("max-w-full truncate", on && "text-brand-strong")}>{f.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+              <PickerState
+                resource={friendsResource}
+                noun="your friends"
+                onRetry={retryFriends}
+                empty={
+                  <>
+                    No friends to invite yet.{" "}
+                    <Link href={ROUTES.friends} className="font-semibold text-brand-strong hover:underline">Find friends</Link>
+                  </>
+                }
+              >
+                {(items) => (
+                  <div className="grid grid-cols-3 gap-4 sm:grid-cols-5">
+                    {items.map((f) => {
+                      const on = inviteeIds.includes(f.id);
+                      return (
+                        <button key={f.id} type="button" aria-pressed={on} onClick={() => setInviteeIds(toggleId(inviteeIds, f.id))} className="flex flex-col items-center gap-2 text-sm font-medium">
+                          <span className="relative">
+                            <Avatar person={f} className={cn("size-16 text-lg", on && "ring-4 ring-brand")} />
+                            {on && <Check className="absolute -right-1 -bottom-1 size-6 rounded-full bg-brand p-1 text-white" />}
+                          </span>
+                          <span className={cn("max-w-full truncate", on && "text-brand-strong")}>{f.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </PickerState>
             </FormSection>
           </div>
 
@@ -191,7 +252,7 @@ export default function CreateGameNight() {
               {others.length > 0 && <p className="text-sm text-muted-foreground">+ {others.map((g) => g.name).join(", ")}</p>}
             </div>
             <div className="flex flex-col gap-2 text-sm">
-              <InfoRow icon={CalendarDays}>{form.startsAt ? formatEventDate(date.toISOString()) : <span className="text-muted-foreground">Pick a date</span>}</InfoRow>
+              <InfoRow icon={CalendarDays}>{date ? formatEventDate(date.toISOString()) : <span className="text-muted-foreground">Pick a date</span>}</InfoRow>
               <InfoRow icon={MapPin}>{form.location || <span className="text-muted-foreground">Add a location</span>}</InfoRow>
               <InfoRow icon={Users}>
                 {guests.map((f) => <Avatar key={f.id} person={f} className="-mr-3 size-7 text-[10px] ring-2 ring-white" />)}
